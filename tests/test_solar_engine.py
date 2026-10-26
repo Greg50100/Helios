@@ -161,3 +161,128 @@ def test_explicit_local_date_overrides_solar_day() -> None:
     dt = datetime(2024, 6, 21, 23, 30, tzinfo=timezone.utc)
     data = engine.calculate(dt, local_date=date(2024, 6, 22))
     assert data.sunrise.date() == date(2024, 6, 22)
+
+
+REYKJAVIK = (64.15, -21.94)
+APIA = (-13.83, -171.76)
+KIRITIMATI = (1.87, -157.43)
+
+EVENT_ATTRS = (
+    "astronomical_dawn",
+    "nautical_dawn",
+    "civil_dawn",
+    "sunrise",
+    "solar_noon",
+    "sunset",
+    "civil_dusk",
+    "nautical_dusk",
+    "astronomical_dusk",
+)
+
+
+def test_dusk_after_civil_midnight_stays_current() -> None:
+    """Reykjavik (UTC+0), 2024-06-21: the Sun sets at 00:04 on June 22."""
+    engine = MeeusSolarEngine(*REYKJAVIK)
+    sunset = engine.calculate(datetime(2024, 6, 21, 13, 0, tzinfo=timezone.utc)).sunset
+    assert sunset.date() == date(2024, 6, 22)
+
+    # Past civil midnight, the sunset still to come must still be the one shown
+    after_midnight = datetime(2024, 6, 22, 0, 1, tzinfo=timezone.utc)
+    assert engine.calculate(after_midnight).sunset == sunset
+
+
+@pytest.mark.parametrize(
+    "coordinates",
+    [PARIS, TROMSO, REYKJAVIK, AUCKLAND, HONOLULU, APIA],
+    ids=["paris", "tromso", "reykjavik", "auckland", "honolulu", "apia"],
+)
+def test_every_event_is_current_when_it_happens(
+    coordinates: tuple[float, float],
+) -> None:
+    """Each event is shown right before it happens, so time triggers fire."""
+    engine = MeeusSolarEngine(*coordinates)
+    margin = timedelta(seconds=1)
+    for day in range(0, 366, 5):
+        moment = datetime(2024, 1, 1, tzinfo=timezone.utc) + timedelta(days=day)
+        data = engine.calculate(engine.calculate(moment).solar_noon)
+        for attr in EVENT_ATTRS:
+            event = getattr(data, attr)
+            if event is None:
+                continue
+            assert getattr(engine.calculate(event - margin), attr) == event
+            assert getattr(engine.calculate(event + margin), attr) == event
+
+
+@pytest.mark.parametrize(
+    ("coordinates", "utc_offset"),
+    [(APIA, 13), (KIRITIMATI, 14)],
+    ids=["apia", "kiritimati"],
+)
+def test_events_on_local_day_across_the_date_line(
+    coordinates: tuple[float, float], utc_offset: int
+) -> None:
+    """Samoa and Kiribati use a time zone a day ahead of their longitude."""
+    zone = timezone(timedelta(hours=utc_offset))
+    engine = MeeusSolarEngine(*coordinates)
+    data = engine.calculate(datetime(2024, 6, 21, 10, 0, tzinfo=zone))
+
+    for event in (data.sunrise, data.solar_noon, data.sunset):
+        assert event.astimezone(zone).date() == date(2024, 6, 21)
+
+
+def test_apparent_elevation_is_continuous_and_increasing() -> None:
+    """No jump at the -1° limit of Saemundsson's formula (Meeus Chapter 16)."""
+    limit = MeeusSolarEngine.REFRACTION_FORMULA_LIMIT
+    refraction = MeeusSolarEngine._refraction
+    assert refraction(limit - 1e-9) == pytest.approx(refraction(limit), abs=1e-6)
+
+    altitudes = [h / 100.0 for h in range(-9000, 9001)]
+    apparent = [h + refraction(h) for h in altitudes]
+    assert all(low < high for low, high in zip(apparent, apparent[1:]))
+
+    # About 34' when the Sun's centre appears on the horizon, fading far below it
+    assert refraction(-0.57) * 60.0 == pytest.approx(34.0, abs=1.0)
+    assert refraction(-18.0) < 0.05
+
+
+def test_day_length_matches_sunrise_and_sunset() -> None:
+    engine = MeeusSolarEngine(*PARIS)
+    for day in range(0, 366, 7):
+        moment = datetime(2024, 1, 1, 12, tzinfo=timezone.utc) + timedelta(days=day)
+        data = engine.calculate(moment)
+        expected = (data.sunset - data.sunrise).total_seconds() / 60.0
+        assert data.day_length_minutes == pytest.approx(expected, abs=0.01)
+
+
+def test_day_length_around_polar_day_and_night() -> None:
+    """Tromsø, 2024: day length agrees with the events of each solar day."""
+    engine = MeeusSolarEngine(*TROMSO)
+    seen = set()
+    for day in range(366):
+        moment = datetime(2024, 1, 1, 11, tzinfo=timezone.utc) + timedelta(days=day)
+        data = engine.calculate(moment)
+        if data.sunrise is not None and data.sunset is not None:
+            seen.add("rise and set")
+            expected = (data.sunset - data.sunrise).total_seconds() / 60.0
+            assert data.day_length_minutes == pytest.approx(expected, abs=0.01)
+        elif data.sunrise is None and data.sunset is None:
+            seen.add("neither")
+            expected = 1440.0 if data.is_above_horizon else 0.0
+            assert data.day_length_minutes == expected
+        else:
+            # Midnight sun starts or ends: up until (or from) solar midnight
+            seen.add("only one")
+            assert 0.0 < data.day_length_minutes < 1440.0
+    assert seen == {"rise and set", "neither", "only one"}
+
+
+def test_above_horizon_switches_at_sunrise_and_sunset_far_north() -> None:
+    """Tromsø, 2024-08-10: counting refraction twice put it 3 min early/late."""
+    engine = MeeusSolarEngine(*TROMSO)
+    day = engine.calculate(datetime(2024, 8, 10, 11, 0, tzinfo=timezone.utc))
+    margin = timedelta(seconds=60)
+
+    assert not engine.calculate(day.sunrise - margin).is_above_horizon
+    assert engine.calculate(day.sunrise + margin).is_above_horizon
+    assert engine.calculate(day.sunset - margin).is_above_horizon
+    assert not engine.calculate(day.sunset + margin).is_above_horizon
