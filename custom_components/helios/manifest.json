@@ -1,11 +1,13 @@
 {
-  "domain": "helios",
-  "name": "Helios Solar Tracker (Jean Meeus)",
-  "codeowners": ["@Greg50100"],
-  "config_flow": true,
-  "documentation": "https://github.com/Greg50100/helios",
-  "iot_class": "calculated",
-  "issue_tracker": "https://github.com/Greg50100/helios/issues",
-  "requirements": [],
-  "version": "0.0.1"
+"domain": "helios",
+"name": "Helios Solar Tracker (Jean Meeus)",
+"codeowners": [
+"@Greg50100"
+],
+"config_flow": true,
+"documentation": "https://github.com/Greg50100/Helios",
+"iot_class": "calculated",
+"issue_tracker": "https://github.com/Greg50100/Helios/issues",
+"requirements": [],
+"version": "0.0.1-alpha"
 }
