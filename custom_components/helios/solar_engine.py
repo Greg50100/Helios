@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 import math
 
 
@@ -203,7 +203,7 @@ class MeeusSolarEngine:
 
     def _calculate_event_time(
         self,
-        base_date_utc: datetime,
+        local_date: date,
         target_altitude: float,
         is_rising: bool | None,
     ) -> datetime | None:
@@ -211,11 +211,13 @@ class MeeusSolarEngine:
 
         Uses a two-pass refinement for high accuracy across the day.
         If is_rising is None, computes Solar Noon (Transit).
+        Events are anchored on UTC midnight of local_date; offsets beyond
+        [0, 1440) minutes land on the adjacent UTC day as expected far from Greenwich.
         """
         midnight_utc = datetime(
-            base_date_utc.year,
-            base_date_utc.month,
-            base_date_utc.day,
+            local_date.year,
+            local_date.month,
+            local_date.day,
             0,
             0,
             0,
@@ -279,12 +281,21 @@ class MeeusSolarEngine:
         h0_deg = math.degrees(math.acos(cos_h0))
         return 8.0 * h0_deg
 
-    def calculate(self, dt_utc: datetime) -> SolarData:
-        """Compute complete solar position and daily solar events for a UTC datetime."""
+    def calculate(
+        self, dt_utc: datetime, local_date: date | None = None
+    ) -> SolarData:
+        """Compute complete solar position and daily solar events for a UTC datetime.
+
+        Daily events are computed for local_date. When omitted, the local mean
+        solar date at the observer's longitude is used (UTC + longitude / 15 h).
+        """
         if dt_utc.tzinfo is None:
             dt_utc = dt_utc.replace(tzinfo=timezone.utc)
         else:
             dt_utc = dt_utc.astimezone(timezone.utc)
+
+        if local_date is None:
+            local_date = (dt_utc + timedelta(hours=self.longitude / 15.0)).date()
 
         jd = self.to_julian_day(dt_utc)
         t_century = self.to_julian_century(jd)
@@ -338,30 +349,30 @@ class MeeusSolarEngine:
         azimuth_deg = (math.degrees(azimuth_south_rad) + 180.0) % 360.0
 
         # Daily solar time events
-        solar_noon = self._calculate_event_time(dt_utc, 0.0, None)
+        solar_noon = self._calculate_event_time(local_date, 0.0, None)
         sunrise = self._calculate_event_time(
-            dt_utc, self.ALTITUDE_SUNRISE_SUNSET, True
+            local_date, self.ALTITUDE_SUNRISE_SUNSET, True
         )
         sunset = self._calculate_event_time(
-            dt_utc, self.ALTITUDE_SUNRISE_SUNSET, False
+            local_date, self.ALTITUDE_SUNRISE_SUNSET, False
         )
         civil_dawn = self._calculate_event_time(
-            dt_utc, self.ALTITUDE_CIVIL_TWILIGHT, True
+            local_date, self.ALTITUDE_CIVIL_TWILIGHT, True
         )
         civil_dusk = self._calculate_event_time(
-            dt_utc, self.ALTITUDE_CIVIL_TWILIGHT, False
+            local_date, self.ALTITUDE_CIVIL_TWILIGHT, False
         )
         nautical_dawn = self._calculate_event_time(
-            dt_utc, self.ALTITUDE_NAUTICAL_TWILIGHT, True
+            local_date, self.ALTITUDE_NAUTICAL_TWILIGHT, True
         )
         nautical_dusk = self._calculate_event_time(
-            dt_utc, self.ALTITUDE_NAUTICAL_TWILIGHT, False
+            local_date, self.ALTITUDE_NAUTICAL_TWILIGHT, False
         )
         astronomical_dawn = self._calculate_event_time(
-            dt_utc, self.ALTITUDE_ASTRONOMICAL_TWILIGHT, True
+            local_date, self.ALTITUDE_ASTRONOMICAL_TWILIGHT, True
         )
         astronomical_dusk = self._calculate_event_time(
-            dt_utc, self.ALTITUDE_ASTRONOMICAL_TWILIGHT, False
+            local_date, self.ALTITUDE_ASTRONOMICAL_TWILIGHT, False
         )
 
         day_length_min = self._calculate_day_length(coords["declination"])

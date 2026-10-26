@@ -7,16 +7,27 @@ import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.const import CONF_ELEVATION, CONF_LATITUDE, CONF_LONGITUDE, CONF_NAME
+from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 import homeassistant.helpers.config_validation as cv
 
 from .const import CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL_SECONDS, DOMAIN
+
+UPDATE_INTERVAL_VALIDATOR = vol.All(vol.Coerce(int), vol.Range(min=10, max=3600))
 
 
 class HeliosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Helios."""
 
     VERSION = 1
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> HeliosOptionsFlow:
+        """Return the options flow handler."""
+        return HeliosOptionsFlow()
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -43,8 +54,35 @@ class HeliosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 ): vol.Coerce(float),
                 vol.Required(
                     CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL_SECONDS
-                ): vol.All(vol.Coerce(int), vol.Range(min=10, max=3600)),
+                ): UPDATE_INTERVAL_VALIDATOR,
             }
         )
 
         return self.async_show_form(step_id="user", data_schema=schema)
+
+
+class HeliosOptionsFlow(config_entries.OptionsFlow):
+    """Handle Helios options."""
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Manage the update interval."""
+        if user_input is not None:
+            return self.async_create_entry(data=user_input)
+
+        current_interval = self.config_entry.options.get(
+            CONF_UPDATE_INTERVAL,
+            self.config_entry.data.get(
+                CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL_SECONDS
+            ),
+        )
+        schema = vol.Schema(
+            {
+                vol.Required(
+                    CONF_UPDATE_INTERVAL, default=current_interval
+                ): UPDATE_INTERVAL_VALIDATOR,
+            }
+        )
+
+        return self.async_show_form(step_id="init", data_schema=schema)
