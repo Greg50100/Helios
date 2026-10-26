@@ -1,0 +1,92 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configure Helios Solar Tracker",
+        "data": {
+          "name": "Instance Name",
+          "latitude": "Latitude",
+          "longitude": "Longitude",
+          "elevation": "Elevation (meters)",
+          "update_interval": "Update interval (seconds)"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "This location is already configured."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "azimuth": {
+        "name": "Solar azimuth"
+      },
+      "apparent_elevation": {
+        "name": "Apparent solar elevation"
+      },
+      "true_elevation": {
+        "name": "True geometric solar elevation"
+      },
+      "declination": {
+        "name": "Solar declination"
+      },
+      "right_ascension": {
+        "name": "Solar right ascension"
+      },
+      "equation_of_time": {
+        "name": "Equation of time"
+      },
+      "sun_distance_au": {
+        "name": "Earth-Sun distance"
+      },
+      "day_length": {
+        "name": "Daylight duration"
+      },
+      "julian_day": {
+        "name": "Julian Day"
+      },
+      "solar_noon": {
+        "name": "Solar noon"
+      },
+      "sunrise": {
+        "name": "Sunrise"
+      },
+      "sunset": {
+        "name": "Sunset"
+      },
+      "civil_dawn": {
+        "name": "Civil dawn"
+      },
+      "civil_dusk": {
+        "name": "Civil dusk"
+      },
+      "nautical_dawn": {
+        "name": "Nautical dawn"
+      },
+      "nautical_dusk": {
+        "name": "Nautical dusk"
+      },
+      "astronomical_dawn": {
+        "name": "Astronomical dawn"
+      },
+      "astronomical_dusk": {
+        "name": "Astronomical dusk"
+      }
+    },
+    "binary_sensor": {
+      "above_horizon": {
+        "name": "Sun above horizon"
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Helios options",
+        "data": {
+          "update_interval": "Update interval (seconds)"
+        }
+      }
+    }
+  }
+}

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 import math
 
 
@@ -49,6 +49,9 @@ class MeeusSolarEngine:
     ALTITUDE_CIVIL_TWILIGHT = -6.0
     ALTITUDE_NAUTICAL_TWILIGHT = -12.0
     ALTITUDE_ASTRONOMICAL_TWILIGHT = -18.0
+
+    # Lowest true altitude where Saemundsson's refraction formula holds (Chapter 16)
+    REFRACTION_FORMULA_LIMIT = -1.0
 
     def __init__(
         self,
@@ -203,7 +206,7 @@ class MeeusSolarEngine:
 
     def _calculate_event_time(
         self,
-        base_date_utc: datetime,
+        local_date: date,
         target_altitude: float,
         is_rising: bool | None,
     ) -> datetime | None:
@@ -211,11 +214,14 @@ class MeeusSolarEngine:
 
         Uses a two-pass refinement for high accuracy across the day.
         If is_rising is None, computes Solar Noon (Transit).
+        local_date is the date of the solar day in local mean solar time: anchoring
+        on its UTC midnight puts the transit near 12:00 local mean time, and offsets
+        beyond [0, 1440) minutes land on the adjacent UTC day far from Greenwich.
         """
         midnight_utc = datetime(
-            base_date_utc.year,
-            base_date_utc.month,
-            base_date_utc.day,
+            local_date.year,
+            local_date.month,
+            local_date.day,
             0,
             0,
             0,
@@ -262,29 +268,91 @@ class MeeusSolarEngine:
 
         return midnight_utc + timedelta(days=fraction_of_day)
 
-    def _calculate_day_length(self, declination_deg: float) -> float:
-        """Return theoretical day length in minutes for the given solar declination."""
-        lat_rad = math.radians(self.latitude)
-        decl_rad = math.radians(declination_deg)
-        alt_rad = math.radians(self.ALTITUDE_SUNRISE_SUNSET)
+    def _solar_date(self, dt_utc: datetime) -> date:
+        """Return the local mean solar date of the solar day containing dt_utc.
 
-        cos_h0 = (math.sin(alt_rad) - math.sin(lat_rad) * math.sin(decl_rad)) / (
-            math.cos(lat_rad) * math.cos(decl_rad)
+        A solar day runs from one solar midnight to the next, so every dawn and dusk
+        of the day happens while it is current, even a dusk after civil midnight.
+        It only depends on longitude, which also keeps the right day where the time
+        zone is a day away from it (UTC+13/+14 west of the 180th meridian).
+        """
+        solar_date = (dt_utc + timedelta(hours=self.longitude / 15.0)).date()
+        # Local mean time drifts from the true Sun by the equation of time (±16 min)
+        solar_noon = self._calculate_event_time(solar_date, 0.0, None)
+        if dt_utc - solar_noon > timedelta(hours=12):
+            return solar_date + timedelta(days=1)
+        if solar_noon - dt_utc > timedelta(hours=12):
+            return solar_date - timedelta(days=1)
+        return solar_date
+
+    def _is_up_at_solar_midnight(self, moment: datetime) -> bool:
+        """Return True if the Sun stays above the horizon through its lower transit."""
+        t_century = self.to_julian_century(self.to_julian_day(moment))
+        declination = self._solar_coordinates(t_century)["declination"]
+        # Altitude at lower transit: sin(h) = sin φ sin δ - cos φ cos δ = -cos(φ + δ)
+        lowest_altitude = math.degrees(
+            math.asin(-math.cos(math.radians(self.latitude + declination)))
         )
-        if cos_h0 <= -1.0:
-            return 1440.0  # Polar day (24 hours)
-        if cos_h0 >= 1.0:
-            return 0.0  # Polar night (0 hours)
+        return lowest_altitude > self.ALTITUDE_SUNRISE_SUNSET
 
-        h0_deg = math.degrees(math.acos(cos_h0))
-        return 8.0 * h0_deg
+    def _calculate_day_length(
+        self,
+        solar_noon: datetime,
+        sunrise: datetime | None,
+        sunset: datetime | None,
+    ) -> float:
+        """Return the minutes the Sun spends above the horizon during the solar day.
 
-    def calculate(self, dt_utc: datetime) -> SolarData:
-        """Compute complete solar position and daily solar events for a UTC datetime."""
+        The solar day runs from solar midnight to solar midnight (solar noon ± 12 h).
+        Without a sunrise (or sunset) in it, the Sun is either up from (or until)
+        solar midnight, as around the midnight sun, or it does not rise at all.
+        """
+        day_start = solar_noon - timedelta(hours=12)
+        day_end = solar_noon + timedelta(hours=12)
+        if sunrise is None and self._is_up_at_solar_midnight(day_start):
+            sunrise = day_start
+        if sunset is None and self._is_up_at_solar_midnight(day_end):
+            sunset = day_end
+        if sunrise is None or sunset is None:
+            return 0.0
+        return (sunset - sunrise).total_seconds() / 60.0
+
+    @classmethod
+    def _refraction(cls, true_elevation_deg: float) -> float:
+        """Return atmospheric refraction in degrees for a true (geometric) altitude.
+
+        Saemundsson's formula (Meeus Chapter 16, Eq. 16.4) is not valid below about
+        -1°. Under that limit refraction decays as 1/tan(h), the form NOAA uses below
+        the horizon, scaled to match at the limit so the apparent altitude stays
+        continuous.
+        """
+        altitude = max(true_elevation_deg, cls.REFRACTION_FORMULA_LIMIT)
+        refraction_arcmin = 1.02 / math.tan(
+            math.radians(altitude + 10.3 / (altitude + 5.11))
+        )
+        refraction_deg = max(0.0, refraction_arcmin / 60.0)
+        if true_elevation_deg < cls.REFRACTION_FORMULA_LIMIT:
+            refraction_deg *= math.tan(
+                math.radians(-cls.REFRACTION_FORMULA_LIMIT)
+            ) / math.tan(math.radians(-true_elevation_deg))
+        return refraction_deg
+
+    def calculate(
+        self, dt_utc: datetime, local_date: date | None = None
+    ) -> SolarData:
+        """Compute complete solar position and daily solar events for a UTC datetime.
+
+        Daily events belong to the solar day containing dt_utc (see _solar_date).
+        local_date overrides it with the solar day of that date in local mean
+        solar time.
+        """
         if dt_utc.tzinfo is None:
             dt_utc = dt_utc.replace(tzinfo=timezone.utc)
         else:
             dt_utc = dt_utc.astimezone(timezone.utc)
+
+        if local_date is None:
+            local_date = self._solar_date(dt_utc)
 
         jd = self.to_julian_day(dt_utc)
         t_century = self.to_julian_century(jd)
@@ -317,17 +385,9 @@ class MeeusSolarEngine:
         true_elevation_deg = math.degrees(math.asin(sin_h0))
 
         # Atmospheric Refraction R (Saemundsson's formula, Meeus Chapter 16, Eq. 16.4)
-        if true_elevation_deg > -1.0:
-            refraction_arcmin = 1.02 / math.tan(
-                math.radians(
-                    true_elevation_deg + 10.3 / (true_elevation_deg + 5.11)
-                )
-            )
-            refraction_deg = max(0.0, refraction_arcmin / 60.0)
-        else:
-            refraction_deg = 0.0
-
-        apparent_elevation_deg = true_elevation_deg + refraction_deg
+        apparent_elevation_deg = true_elevation_deg + self._refraction(
+            true_elevation_deg
+        )
 
         # Azimuth A measured from South (Meeus Chapter 13, Eq. 13.5), converted to North=0°
         azimuth_south_rad = math.atan2(
@@ -338,33 +398,33 @@ class MeeusSolarEngine:
         azimuth_deg = (math.degrees(azimuth_south_rad) + 180.0) % 360.0
 
         # Daily solar time events
-        solar_noon = self._calculate_event_time(dt_utc, 0.0, None)
+        solar_noon = self._calculate_event_time(local_date, 0.0, None)
         sunrise = self._calculate_event_time(
-            dt_utc, self.ALTITUDE_SUNRISE_SUNSET, True
+            local_date, self.ALTITUDE_SUNRISE_SUNSET, True
         )
         sunset = self._calculate_event_time(
-            dt_utc, self.ALTITUDE_SUNRISE_SUNSET, False
+            local_date, self.ALTITUDE_SUNRISE_SUNSET, False
         )
         civil_dawn = self._calculate_event_time(
-            dt_utc, self.ALTITUDE_CIVIL_TWILIGHT, True
+            local_date, self.ALTITUDE_CIVIL_TWILIGHT, True
         )
         civil_dusk = self._calculate_event_time(
-            dt_utc, self.ALTITUDE_CIVIL_TWILIGHT, False
+            local_date, self.ALTITUDE_CIVIL_TWILIGHT, False
         )
         nautical_dawn = self._calculate_event_time(
-            dt_utc, self.ALTITUDE_NAUTICAL_TWILIGHT, True
+            local_date, self.ALTITUDE_NAUTICAL_TWILIGHT, True
         )
         nautical_dusk = self._calculate_event_time(
-            dt_utc, self.ALTITUDE_NAUTICAL_TWILIGHT, False
+            local_date, self.ALTITUDE_NAUTICAL_TWILIGHT, False
         )
         astronomical_dawn = self._calculate_event_time(
-            dt_utc, self.ALTITUDE_ASTRONOMICAL_TWILIGHT, True
+            local_date, self.ALTITUDE_ASTRONOMICAL_TWILIGHT, True
         )
         astronomical_dusk = self._calculate_event_time(
-            dt_utc, self.ALTITUDE_ASTRONOMICAL_TWILIGHT, False
+            local_date, self.ALTITUDE_ASTRONOMICAL_TWILIGHT, False
         )
 
-        day_length_min = self._calculate_day_length(coords["declination"])
+        day_length_min = self._calculate_day_length(solar_noon, sunrise, sunset)
 
         return SolarData(
             julian_day=round(jd, 6),
@@ -394,5 +454,7 @@ class MeeusSolarEngine:
             nautical_dusk=nautical_dusk,
             astronomical_dawn=astronomical_dawn,
             astronomical_dusk=astronomical_dusk,
-            is_above_horizon=apparent_elevation_deg > self.ALTITUDE_SUNRISE_SUNSET,
+            # Sunrise/sunset thresholds apply to the geometric altitude: refraction is
+            # already part of them, so comparing the apparent one would count it twice
+            is_above_horizon=true_elevation_deg > self.ALTITUDE_SUNRISE_SUNSET,
         )

@@ -1,0 +1,92 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configurer le suivi solaire Helios",
+        "data": {
+          "name": "Nom de l'instance",
+          "latitude": "Latitude",
+          "longitude": "Longitude",
+          "elevation": "Altitude (mètres)",
+          "update_interval": "Intervalle de mise à jour (secondes)"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Cet emplacement est déjà configuré."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "azimuth": {
+        "name": "Azimut solaire"
+      },
+      "apparent_elevation": {
+        "name": "Élévation solaire apparente"
+      },
+      "true_elevation": {
+        "name": "Élévation géométrique vraie"
+      },
+      "declination": {
+        "name": "Déclinaison solaire"
+      },
+      "right_ascension": {
+        "name": "Ascension droite solaire"
+      },
+      "equation_of_time": {
+        "name": "Équation du temps"
+      },
+      "sun_distance_au": {
+        "name": "Distance Terre-Soleil"
+      },
+      "day_length": {
+        "name": "Durée du jour"
+      },
+      "julian_day": {
+        "name": "Jour Julien"
+      },
+      "solar_noon": {
+        "name": "Midi solaire"
+      },
+      "sunrise": {
+        "name": "Lever du soleil"
+      },
+      "sunset": {
+        "name": "Coucher du soleil"
+      },
+      "civil_dawn": {
+        "name": "Aube civile"
+      },
+      "civil_dusk": {
+        "name": "Crépuscule civil"
+      },
+      "nautical_dawn": {
+        "name": "Aube nautique"
+      },
+      "nautical_dusk": {
+        "name": "Crépuscule nautique"
+      },
+      "astronomical_dawn": {
+        "name": "Aube astronomique"
+      },
+      "astronomical_dusk": {
+        "name": "Crépuscule astronomique"
+      }
+    },
+    "binary_sensor": {
+      "above_horizon": {
+        "name": "Soleil au-dessus de l'horizon"
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options Helios",
+        "data": {
+          "update_interval": "Intervalle de mise à jour (secondes)"
+        }
+      }
+    }
+  }
+}

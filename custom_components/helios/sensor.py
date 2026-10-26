@@ -38,7 +38,8 @@ SENSOR_TYPES: tuple[HeliosSensorEntityDescription, ...] = (
         key="azimuth",
         translation_key="azimuth",
         native_unit_of_measurement=DEGREE,
-        state_class=SensorStateClass.MEASUREMENT,
+        # Wraps from 360° to 0°: statistics need a circular mean
+        state_class=SensorStateClass.MEASUREMENT_ANGLE,
         icon="mdi:compass-rose",
         value_fn=lambda data: data.azimuth,
     ),
@@ -71,7 +72,7 @@ SENSOR_TYPES: tuple[HeliosSensorEntityDescription, ...] = (
         key="right_ascension",
         translation_key="right_ascension",
         native_unit_of_measurement=DEGREE,
-        state_class=SensorStateClass.MEASUREMENT,
+        state_class=SensorStateClass.MEASUREMENT_ANGLE,
         entity_category=EntityCategory.DIAGNOSTIC,
         icon="mdi:orbit",
         value_fn=lambda data: data.right_ascension,
@@ -104,7 +105,7 @@ SENSOR_TYPES: tuple[HeliosSensorEntityDescription, ...] = (
     HeliosSensorEntityDescription(
         key="julian_day",
         translation_key="julian_day",
-        state_class=SensorStateClass.MEASUREMENT,
+        # A unitless ever-growing day count: long-term statistics are meaningless
         entity_category=EntityCategory.DIAGNOSTIC,
         icon="mdi:calendar-clock",
         value_fn=lambda data: data.julian_day,

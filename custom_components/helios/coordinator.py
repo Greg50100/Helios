@@ -45,6 +45,9 @@ class HeliosDataUpdateCoordinator(DataUpdateCoordinator[SolarData]):
         )
 
     async def _async_update_data(self) -> SolarData:
-        """Calculate solar coordinates for the current UTC time."""
-        now_utc = dt_util.utcnow()
-        return self.engine.calculate(now_utc)
+        """Calculate solar coordinates for the current UTC time.
+
+        Daily events follow the solar day, not the civil date, so a dusk after
+        local midnight is still shown until it happens.
+        """
+        return self.engine.calculate(dt_util.utcnow())
