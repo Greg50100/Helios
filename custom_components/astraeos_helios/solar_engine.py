@@ -1,4 +1,8 @@
-"""Pure Python solar calculation engine based on Jean Meeus's Astronomical Algorithms."""
+"""Pure Python solar calculation engine.
+
+Equations and chapter references come from Astronomical Algorithms
+(J. Meeus, 2nd edition, Willmann-Bell, 1998).
+"""
 
 from __future__ import annotations
 
@@ -41,8 +45,8 @@ class SolarData:
     is_above_horizon: bool
 
 
-class MeeusSolarEngine:
-    """Astronomical calculation engine using Jean Meeus equations."""
+class SolarEngine:
+    """Astronomical calculation engine for solar position and daily events."""
 
     # Standard altitude thresholds in degrees (Meeus Chapter 15, p. 101)
     ALTITUDE_SUNRISE_SUNSET = -0.8333  # -50 arcminutes (refraction + solar semi-diameter)

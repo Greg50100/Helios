@@ -17,7 +17,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.helios.const import CONF_UPDATE_INTERVAL, DOMAIN
+from custom_components.astraeos_helios.const import CONF_UPDATE_INTERVAL, DOMAIN
 
 pytestmark = pytest.mark.usefixtures("enable_custom_integrations")
 
@@ -38,7 +38,7 @@ async def test_user_flow_creates_entry(hass: HomeAssistant) -> None:
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "user"
 
-    with patch("custom_components.helios.async_setup_entry", return_value=True):
+    with patch("custom_components.astraeos_helios.async_setup_entry", return_value=True):
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], USER_INPUT
         )

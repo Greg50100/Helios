@@ -17,8 +17,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.helios.const import CONF_UPDATE_INTERVAL, DOMAIN
-from custom_components.helios.sensor import SENSOR_TYPES
+from custom_components.astraeos_helios.const import CONF_UPDATE_INTERVAL, DOMAIN
+from custom_components.astraeos_helios.sensor import SENSOR_TYPES
 
 pytestmark = pytest.mark.usefixtures("enable_custom_integrations")
 

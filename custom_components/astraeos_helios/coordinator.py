@@ -12,13 +12,13 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
 from .const import CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL_SECONDS, DOMAIN
-from .solar_engine import MeeusSolarEngine, SolarData
+from .solar_engine import SolarData, SolarEngine
 
 _LOGGER = logging.getLogger(__name__)
 
 
 class HeliosDataUpdateCoordinator(DataUpdateCoordinator[SolarData]):
-    """Class to manage recalculating Jean Meeus solar data periodically."""
+    """Class to manage recalculating solar data periodically."""
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Initialize the coordinator."""
@@ -33,7 +33,7 @@ class HeliosDataUpdateCoordinator(DataUpdateCoordinator[SolarData]):
             entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL_SECONDS),
         )
 
-        self.engine = MeeusSolarEngine(
+        self.engine = SolarEngine(
             latitude=latitude,
             longitude=longitude,
             elevation_meters=elevation,
