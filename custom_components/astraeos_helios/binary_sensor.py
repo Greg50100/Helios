@@ -47,8 +47,8 @@ class HeliosAboveHorizonBinarySensor(
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, coordinator.entry.entry_id)},
             name=coordinator.entry.title,
-            manufacturer="Jean Meeus Algorithms",
-            model="Astronomical Algorithms (2nd Ed.)",
+            manufacturer="astraeos",
+            model="Solar calculator",
             entry_type=DeviceEntryType.SERVICE,
         )
 

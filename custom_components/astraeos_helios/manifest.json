@@ -5,9 +5,9 @@
 "@astraeos-dev"
 ],
 "config_flow": true,
-"documentation": "https://github.com/astraeos-dev/helios",
+"documentation": "https://github.com/astraeos-dev/Helios",
 "iot_class": "calculated",
-"issue_tracker": "https://github.com/astraeos-dev/helios/issues",
+"issue_tracker": "https://github.com/astraeos-dev/Helios/issues",
 "requirements": [],
 "version": "0.1.0"
 }

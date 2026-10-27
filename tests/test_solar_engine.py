@@ -1,4 +1,4 @@
-"""Tests for the Meeus solar engine, using worked examples from Astronomical Algorithms."""
+"""Tests for the solar engine, using worked examples from Astronomical Algorithms."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ solar_engine = importlib.util.module_from_spec(_spec)
 sys.modules["solar_engine"] = solar_engine
 _spec.loader.exec_module(solar_engine)
 
-MeeusSolarEngine = solar_engine.MeeusSolarEngine
+SolarEngine = solar_engine.SolarEngine
 
 PARIS = (48.8566, 2.3522)
 TROMSO = (69.6492, 18.9553)
@@ -30,32 +30,32 @@ TROMSO = (69.6492, 18.9553)
 def test_julian_day_meeus_example_7a() -> None:
     """1957 October 4.81 UT → JD 2436116.31 (Meeus Example 7.a)."""
     dt = datetime(1957, 10, 4, 19, 26, 24, tzinfo=timezone.utc)
-    assert MeeusSolarEngine.to_julian_day(dt) == pytest.approx(2436116.31, abs=1e-6)
+    assert SolarEngine.to_julian_day(dt) == pytest.approx(2436116.31, abs=1e-6)
 
 
 def test_julian_day_j2000() -> None:
     """J2000.0 epoch is JD 2451545.0 and T = 0."""
     dt = datetime(2000, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
-    jd = MeeusSolarEngine.to_julian_day(dt)
+    jd = SolarEngine.to_julian_day(dt)
     assert jd == pytest.approx(2451545.0)
-    assert MeeusSolarEngine.to_julian_century(jd) == pytest.approx(0.0)
+    assert SolarEngine.to_julian_century(jd) == pytest.approx(0.0)
 
 
 def test_naive_datetime_treated_as_utc() -> None:
     naive = datetime(2024, 6, 21, 12, 0, 0)
     aware = naive.replace(tzinfo=timezone.utc)
-    assert MeeusSolarEngine.to_julian_day(naive) == MeeusSolarEngine.to_julian_day(aware)
+    assert SolarEngine.to_julian_day(naive) == SolarEngine.to_julian_day(aware)
 
 
 def test_solar_coordinates_meeus_example_25a() -> None:
     """1992 October 13.0 TD (Meeus Example 25.a and 28.b)."""
-    jd = MeeusSolarEngine.to_julian_day(datetime(1992, 10, 13, tzinfo=timezone.utc))
+    jd = SolarEngine.to_julian_day(datetime(1992, 10, 13, tzinfo=timezone.utc))
     assert jd == pytest.approx(2448908.5)
 
-    t_century = MeeusSolarEngine.to_julian_century(jd)
+    t_century = SolarEngine.to_julian_century(jd)
     assert t_century == pytest.approx(-0.072183436, abs=1e-9)
 
-    coords = MeeusSolarEngine._solar_coordinates(t_century)
+    coords = SolarEngine._solar_coordinates(t_century)
     assert coords["l0"] == pytest.approx(201.80720, abs=1e-4)
     assert coords["m_deg"] == pytest.approx(278.99397, abs=1e-4)
     assert coords["eccentricity"] == pytest.approx(0.016711668, abs=1e-9)
@@ -68,7 +68,7 @@ def test_solar_coordinates_meeus_example_25a() -> None:
 
 
 def test_daily_events_are_ordered() -> None:
-    engine = MeeusSolarEngine(*PARIS)
+    engine = SolarEngine(*PARIS)
     data = engine.calculate(datetime(2024, 6, 21, 12, 0, tzinfo=timezone.utc))
 
     events = [
@@ -86,7 +86,7 @@ def test_daily_events_are_ordered() -> None:
 
 def test_paris_summer_solstice() -> None:
     """Paris, 2024-06-21: sunrise ≈ 03:47 UTC, sunset ≈ 19:58 UTC, ~16h10 of daylight."""
-    engine = MeeusSolarEngine(*PARIS)
+    engine = SolarEngine(*PARIS)
     data = engine.calculate(datetime(2024, 6, 21, 12, 0, tzinfo=timezone.utc))
 
     sunrise_min = data.sunrise.hour * 60 + data.sunrise.minute
@@ -106,7 +106,7 @@ def test_paris_summer_solstice() -> None:
 
 
 def test_polar_night() -> None:
-    engine = MeeusSolarEngine(*TROMSO)
+    engine = SolarEngine(*TROMSO)
     data = engine.calculate(datetime(2024, 12, 21, 12, 0, tzinfo=timezone.utc))
 
     assert data.sunrise is None
@@ -117,7 +117,7 @@ def test_polar_night() -> None:
 
 
 def test_polar_day() -> None:
-    engine = MeeusSolarEngine(*TROMSO)
+    engine = SolarEngine(*TROMSO)
     data = engine.calculate(datetime(2024, 6, 21, 0, 0, tzinfo=timezone.utc))
 
     assert data.sunrise is None
@@ -134,7 +134,7 @@ HONOLULU = (21.3069, -157.8583)
 def test_events_use_local_day_east_of_greenwich() -> None:
     """08:00 NZST on 2024-06-21 is still 2024-06-20 in UTC."""
     nzst = timezone(timedelta(hours=12))
-    engine = MeeusSolarEngine(*AUCKLAND)
+    engine = SolarEngine(*AUCKLAND)
     data = engine.calculate(datetime(2024, 6, 20, 20, 0, tzinfo=timezone.utc))
 
     # Sunrise ≈ 07:33 NZST, sunset ≈ 17:11 NZST on June 21
@@ -146,7 +146,7 @@ def test_events_use_local_day_east_of_greenwich() -> None:
 def test_events_use_local_day_west_of_greenwich() -> None:
     """18:00 HST on 2024-06-21 is already 2024-06-22 in UTC."""
     hst = timezone(timedelta(hours=-10))
-    engine = MeeusSolarEngine(*HONOLULU)
+    engine = SolarEngine(*HONOLULU)
     data = engine.calculate(datetime(2024, 6, 22, 4, 0, tzinfo=timezone.utc))
 
     # Sunrise ≈ 05:51 HST, sunset ≈ 19:16 HST on June 21
@@ -157,7 +157,7 @@ def test_events_use_local_day_west_of_greenwich() -> None:
 
 
 def test_explicit_local_date_overrides_solar_day() -> None:
-    engine = MeeusSolarEngine(*PARIS)
+    engine = SolarEngine(*PARIS)
     dt = datetime(2024, 6, 21, 23, 30, tzinfo=timezone.utc)
     data = engine.calculate(dt, local_date=date(2024, 6, 22))
     assert data.sunrise.date() == date(2024, 6, 22)
@@ -182,7 +182,7 @@ EVENT_ATTRS = (
 
 def test_dusk_after_civil_midnight_stays_current() -> None:
     """Reykjavik (UTC+0), 2024-06-21: the Sun sets at 00:04 on June 22."""
-    engine = MeeusSolarEngine(*REYKJAVIK)
+    engine = SolarEngine(*REYKJAVIK)
     sunset = engine.calculate(datetime(2024, 6, 21, 13, 0, tzinfo=timezone.utc)).sunset
     assert sunset.date() == date(2024, 6, 22)
 
@@ -200,7 +200,7 @@ def test_every_event_is_current_when_it_happens(
     coordinates: tuple[float, float],
 ) -> None:
     """Each event is shown right before it happens, so time triggers fire."""
-    engine = MeeusSolarEngine(*coordinates)
+    engine = SolarEngine(*coordinates)
     margin = timedelta(seconds=1)
     for day in range(0, 366, 5):
         moment = datetime(2024, 1, 1, tzinfo=timezone.utc) + timedelta(days=day)
@@ -223,7 +223,7 @@ def test_events_on_local_day_across_the_date_line(
 ) -> None:
     """Samoa and Kiribati use a time zone a day ahead of their longitude."""
     zone = timezone(timedelta(hours=utc_offset))
-    engine = MeeusSolarEngine(*coordinates)
+    engine = SolarEngine(*coordinates)
     data = engine.calculate(datetime(2024, 6, 21, 10, 0, tzinfo=zone))
 
     for event in (data.sunrise, data.solar_noon, data.sunset):
@@ -232,8 +232,8 @@ def test_events_on_local_day_across_the_date_line(
 
 def test_apparent_elevation_is_continuous_and_increasing() -> None:
     """No jump at the -1° limit of Saemundsson's formula (Meeus Chapter 16)."""
-    limit = MeeusSolarEngine.REFRACTION_FORMULA_LIMIT
-    refraction = MeeusSolarEngine._refraction
+    limit = SolarEngine.REFRACTION_FORMULA_LIMIT
+    refraction = SolarEngine._refraction
     assert refraction(limit - 1e-9) == pytest.approx(refraction(limit), abs=1e-6)
 
     altitudes = [h / 100.0 for h in range(-9000, 9001)]
@@ -246,7 +246,7 @@ def test_apparent_elevation_is_continuous_and_increasing() -> None:
 
 
 def test_day_length_matches_sunrise_and_sunset() -> None:
-    engine = MeeusSolarEngine(*PARIS)
+    engine = SolarEngine(*PARIS)
     for day in range(0, 366, 7):
         moment = datetime(2024, 1, 1, 12, tzinfo=timezone.utc) + timedelta(days=day)
         data = engine.calculate(moment)
@@ -257,7 +257,7 @@ def test_day_length_matches_sunrise_and_sunset() -> None:
 @pytest.mark.parametrize("elevation", [0.0, 1000.0])
 def test_day_length_around_polar_day_and_night(elevation: float) -> None:
     """Tromsø, 2024: day length agrees with the events of each solar day."""
-    engine = MeeusSolarEngine(*TROMSO, elevation_meters=elevation)
+    engine = SolarEngine(*TROMSO, elevation_meters=elevation)
     seen = set()
     for day in range(366):
         moment = datetime(2024, 1, 1, 11, tzinfo=timezone.utc) + timedelta(days=day)
@@ -279,7 +279,7 @@ def test_day_length_around_polar_day_and_night(elevation: float) -> None:
 
 def test_above_horizon_switches_at_sunrise_and_sunset_far_north() -> None:
     """Tromsø, 2024-08-10: counting refraction twice put it 3 min early/late."""
-    engine = MeeusSolarEngine(*TROMSO)
+    engine = SolarEngine(*TROMSO)
     day = engine.calculate(datetime(2024, 8, 10, 11, 0, tzinfo=timezone.utc))
     margin = timedelta(seconds=60)
 
@@ -290,18 +290,18 @@ def test_above_horizon_switches_at_sunrise_and_sunset_far_north() -> None:
 
 
 def test_horizon_dip() -> None:
-    assert MeeusSolarEngine.horizon_dip(0.0) == 0.0
+    assert SolarEngine.horizon_dip(0.0) == 0.0
     # Below sea level (Dead Sea shore): the horizon is not lowered
-    assert MeeusSolarEngine.horizon_dip(-430.0) == 0.0
+    assert SolarEngine.horizon_dip(-430.0) == 0.0
     # 1.76' × √100 = 17.6'
-    assert MeeusSolarEngine.horizon_dip(100.0) == pytest.approx(17.6 / 60.0)
+    assert SolarEngine.horizon_dip(100.0) == pytest.approx(17.6 / 60.0)
 
 
 def test_elevation_lengthens_the_day() -> None:
     """At 1000 m the Sun rises earlier and sets later; twilights are unchanged."""
     dt = datetime(2024, 3, 20, 12, 0, tzinfo=timezone.utc)
-    sea_level = MeeusSolarEngine(*PARIS).calculate(dt)
-    summit = MeeusSolarEngine(*PARIS, elevation_meters=1000.0).calculate(dt)
+    sea_level = SolarEngine(*PARIS).calculate(dt)
+    summit = SolarEngine(*PARIS, elevation_meters=1000.0).calculate(dt)
 
     sunrise_shift = (sea_level.sunrise - summit.sunrise).total_seconds() / 60.0
     sunset_shift = (summit.sunset - sea_level.sunset).total_seconds() / 60.0
@@ -318,7 +318,7 @@ def test_elevation_lengthens_the_day() -> None:
 
 @pytest.mark.parametrize("elevation", [0.0, 1000.0])
 def test_above_horizon_matches_sunrise_and_sunset(elevation: float) -> None:
-    engine = MeeusSolarEngine(*PARIS, elevation_meters=elevation)
+    engine = SolarEngine(*PARIS, elevation_meters=elevation)
     day = engine.calculate(datetime(2024, 6, 21, 12, 0, tzinfo=timezone.utc))
     margin = timedelta(seconds=30)
 

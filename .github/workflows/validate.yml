@@ -38,5 +38,3 @@ jobs:
       - uses: hacs/action@main
         with:
           category: integration
-          # Requires the integration to be listed in home-assistant/brands
-          ignore: brands

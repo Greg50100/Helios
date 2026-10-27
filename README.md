@@ -1,6 +1,6 @@
 <p align="center"><img src="assets/brand/icon.svg" width="128" height="128" alt="Helios"></p>
 
-# Helios - Jean Meeus Solar Integration for Home Assistant
+# Helios - Solar Position and Events for Home Assistant
 
 **Version:** `0.1.0`
 
@@ -12,7 +12,7 @@
 
 ## English Documentation
 
-**Helios** is a lightweight, zero-dependency Home Assistant custom integration that calculates solar position and daily solar events using the astronomical equations from **Jean Meeus's *Astronomical Algorithms* (2nd Edition, Willmann-Bell, 1998)**.
+**Helios** is a lightweight, zero-dependency Home Assistant custom integration that calculates solar position and daily solar events from established astronomical equations (see the [mathematical reference](#mathematical-reference--equations-audit)).
 
 ### Key Features
 
@@ -24,7 +24,10 @@
 
 Helios requires Home Assistant 2025.4 or later.
 
-1. **Via HACS:** Add `https://github.com/astraeos-dev/helios` as a custom repository (category *Integration*), then install **Helios**.
+1. **Via HACS:** Add `https://github.com/astraeos-dev/Helios` as a custom repository (category *Integration*), then install **Helios**, or use this button:
+
+   [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=astraeos-dev&repository=Helios&category=integration)
+
 2. **Manual:** Copy the `custom_components/astraeos_helios` folder into the `custom_components/` directory of your Home Assistant configuration, then restart Home Assistant.
 3. Go to **Settings -> Devices & services -> Add integration** and search for **Helios**.
 
@@ -170,7 +173,7 @@ $$
 
   Where $h_{\text{target}}$ is $-0.8333^\circ$ (sunrise/sunset), $-6^\circ$ (civil), $-12^\circ$ (nautical), and $-18^\circ$ (astronomical). Thresholds apply to the geometric altitude $h_0$; the sunrise/sunset one already includes refraction and the solar semi-diameter, so *Sun above horizon* compares $h_0$ against it as well.
 
-  For an observer at elevation $h$ (meters), the sunrise/sunset threshold is lowered by the dip of the visible horizon, $1.76'\sqrt{h}$ (almanac approximation, terrestrial refraction included; Meeus assumes $h = 0$). Twilights are defined against the astronomical horizon and do not change.
+  For an observer at elevation $h$ (meters), the sunrise/sunset threshold is lowered by the dip of the visible horizon, $1.76'\sqrt{h}$ (almanac approximation, terrestrial refraction included; Chapter 15 assumes $h = 0$). Twilights are defined against the astronomical horizon and do not change.
 * **Daylight Duration:** sunset minus sunrise. On days without one of them (around the midnight sun), the matching solar midnight (solar noon $\pm$ 12 h) bounds the daylight instead.
 
 ---
@@ -179,7 +182,7 @@ $$
 
 ## Documentation Française
 
-**Helios** est une intégration personnalisée pour Home Assistant, sans aucune bibliothèque tierce, qui calcule la position du soleil et les heures solaires quotidiennes en appliquant les équations de **Jean Meeus (*Astronomical Algorithms*, 2e édition, Willmann-Bell, 1998)**.
+**Helios** est une intégration personnalisée pour Home Assistant, sans aucune bibliothèque tierce, qui calcule la position du soleil et les heures solaires quotidiennes à partir d'équations astronomiques éprouvées (voir les [références des équations](#références-des-équations-pour-vérification)).
 
 ### Caractéristiques principales
 
@@ -191,7 +194,10 @@ $$
 
 Helios nécessite Home Assistant 2025.4 ou plus récent.
 
-1. **Via HACS :** Ajoutez `https://github.com/astraeos-dev/helios` en tant que dépôt personnalisé (*Custom Repository*, catégorie *Integration*), puis installez **Helios**.
+1. **Via HACS :** Ajoutez `https://github.com/astraeos-dev/Helios` en tant que dépôt personnalisé (*Custom Repository*, catégorie *Integration*), puis installez **Helios**, ou utilisez ce bouton :
+
+   [![Ouvrir le dépôt dans le Home Assistant Community Store de votre instance Home Assistant.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=astraeos-dev&repository=Helios&category=integration)
+
 2. **Manuelle :** Copiez le dossier `custom_components/astraeos_helios` dans le répertoire `custom_components/` de votre configuration Home Assistant, puis redémarrez Home Assistant.
 3. Allez dans **Paramètres -> Appareils et services -> Ajouter une intégration** et recherchez **Helios**.
 
@@ -233,8 +239,8 @@ Toutes les formules codées dans `custom_components/astraeos_helios/solar_engine
 4. **Obliquité de l'écliptique ($\varepsilon_0, \varepsilon$) :** Chapitre 22 (Éq. 22.2, p. 147) et Chapitre 25 (Éq. 25.8, p. 165).
 5. **Coordonnées équatoriales (Ascension droite $\alpha$ et Déclinaison $\delta$) :** Chapitre 25 (Éq. 25.6 et 25.7, p. 165).
 6. **Temps sidéral à Greenwich ($\theta_0$) :** Chapitre 12 (Éq. 12.4, p. 88).
-7. **Coordonnées horizontales locales (Azimut $A$ et Hauteur vraie $h_0$) :** Chapitre 13 (Éq. 13.5 et 13.6, p. 93). *Note : Jean Meeus mesure l'azimut à partir du Sud vers l'Ouest ; le moteur y ajoute $180^\circ \pmod{360^\circ}$ pour fournir l'azimut géographique standard (Nord = $0^\circ$, Est = $90^\circ$).*
+7. **Coordonnées horizontales locales (Azimut $A$ et Hauteur vraie $h_0$) :** Chapitre 13 (Éq. 13.5 et 13.6, p. 93). *Note : l'ouvrage mesure l'azimut à partir du Sud vers l'Ouest ; le moteur y ajoute $180^\circ \pmod{360^\circ}$ pour fournir l'azimut géographique standard (Nord = $0^\circ$, Est = $90^\circ$).*
 8. **Réfraction atmosphérique ($R$) :** Chapitre 16 (Formule de Saemundsson, Éq. 16.4, p. 106). *Note : la formule n'est plus valable sous $-1^\circ$ environ ; en dessous, la réfraction décroît en $1/\tan(h_0)$ (forme utilisée par la NOAA sous l'horizon), raccordée à $-1^\circ$ pour que l'élévation apparente reste continue.*
 9. **Équation du temps ($E$) :** Chapitre 28 (Éq. 28.3, p. 185).
-10. **Lever, passage au méridien et coucher ($H_0$) :** Chapitre 15 (Éq. 15.1, p. 101-103) avec double itération pour affiner la déclinaison et l'équation du temps à l'instant exact de chaque événement. Les seuils ($-0.8333^\circ$, $-6^\circ$, $-12^\circ$, $-18^\circ$) portent sur la hauteur géométrique $h_0$ ; celui du lever et du coucher inclut déjà la réfraction et le demi-diamètre solaire, c'est donc aussi à lui que *Soleil au-dessus de l'horizon* compare $h_0$. Pour un observateur à l'altitude $h$ (en mètres), ce seuil est abaissé de la dépression de l'horizon visible, $1.76'\sqrt{h}$ (approximation des éphémérides nautiques, réfraction terrestre comprise ; Meeus suppose $h = 0$). Les crépuscules, définis par rapport à l'horizon astronomique, ne changent pas.
+10. **Lever, passage au méridien et coucher ($H_0$) :** Chapitre 15 (Éq. 15.1, p. 101-103) avec double itération pour affiner la déclinaison et l'équation du temps à l'instant exact de chaque événement. Les seuils ($-0.8333^\circ$, $-6^\circ$, $-12^\circ$, $-18^\circ$) portent sur la hauteur géométrique $h_0$ ; celui du lever et du coucher inclut déjà la réfraction et le demi-diamètre solaire, c'est donc aussi à lui que *Soleil au-dessus de l'horizon* compare $h_0$. Pour un observateur à l'altitude $h$ (en mètres), ce seuil est abaissé de la dépression de l'horizon visible, $1.76'\sqrt{h}$ (approximation des éphémérides nautiques, réfraction terrestre comprise ; le chapitre 15 suppose $h = 0$). Les crépuscules, définis par rapport à l'horizon astronomique, ne changent pas.
 11. **Durée du jour :** coucher moins lever. Les jours sans l'un des deux (autour du soleil de minuit), c'est le minuit solaire correspondant (midi solaire $\pm$ 12 h) qui borne la durée.
