@@ -68,6 +68,23 @@ class MeeusSolarEngine:
         self.latitude = latitude
         self.longitude = longitude
         self.elevation_meters = elevation_meters
+        # Sunrise/sunset threshold lowered by the dip of the visible horizon
+        self.sunrise_sunset_altitude = self.ALTITUDE_SUNRISE_SUNSET - self.horizon_dip(
+            elevation_meters
+        )
+
+    @staticmethod
+    def horizon_dip(elevation_meters: float) -> float:
+        """Return the dip of the visible horizon in degrees for an observer's height.
+
+        An elevated observer sees past the astronomical horizon, so the Sun rises
+        earlier and sets later. Uses the almanac approximation dip = 1.76' x sqrt(h)
+        (h in meters, terrestrial refraction included); Meeus Chapter 15 assumes h = 0.
+        Twilights are defined against the astronomical horizon and are not affected.
+        """
+        if elevation_meters <= 0.0:
+            return 0.0
+        return 1.76 * math.sqrt(elevation_meters) / 60.0
 
     @staticmethod
     def to_julian_day(dt_utc: datetime) -> float:
@@ -293,7 +310,7 @@ class MeeusSolarEngine:
         lowest_altitude = math.degrees(
             math.asin(-math.cos(math.radians(self.latitude + declination)))
         )
-        return lowest_altitude > self.ALTITUDE_SUNRISE_SUNSET
+        return lowest_altitude > self.sunrise_sunset_altitude
 
     def _calculate_day_length(
         self,
@@ -400,10 +417,10 @@ class MeeusSolarEngine:
         # Daily solar time events
         solar_noon = self._calculate_event_time(local_date, 0.0, None)
         sunrise = self._calculate_event_time(
-            local_date, self.ALTITUDE_SUNRISE_SUNSET, True
+            local_date, self.sunrise_sunset_altitude, True
         )
         sunset = self._calculate_event_time(
-            local_date, self.ALTITUDE_SUNRISE_SUNSET, False
+            local_date, self.sunrise_sunset_altitude, False
         )
         civil_dawn = self._calculate_event_time(
             local_date, self.ALTITUDE_CIVIL_TWILIGHT, True
@@ -456,5 +473,5 @@ class MeeusSolarEngine:
             astronomical_dusk=astronomical_dusk,
             # Sunrise/sunset thresholds apply to the geometric altitude: refraction is
             # already part of them, so comparing the apparent one would count it twice
-            is_above_horizon=true_elevation_deg > self.ALTITUDE_SUNRISE_SUNSET,
+            is_above_horizon=true_elevation_deg > self.sunrise_sunset_altitude,
         )

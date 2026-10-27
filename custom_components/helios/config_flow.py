@@ -67,20 +67,23 @@ class HeliosOptionsFlow(config_entries.OptionsFlow):
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Manage the update interval."""
+        """Manage the elevation and update interval."""
         if user_input is not None:
             return self.async_create_entry(data=user_input)
 
-        current_interval = self.config_entry.options.get(
-            CONF_UPDATE_INTERVAL,
-            self.config_entry.data.get(
-                CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL_SECONDS
-            ),
-        )
+        # Options override the values entered during the initial setup
+        current = {**self.config_entry.data, **self.config_entry.options}
         schema = vol.Schema(
             {
                 vol.Required(
-                    CONF_UPDATE_INTERVAL, default=current_interval
+                    CONF_ELEVATION,
+                    default=current.get(CONF_ELEVATION, self.hass.config.elevation),
+                ): vol.Coerce(float),
+                vol.Required(
+                    CONF_UPDATE_INTERVAL,
+                    default=current.get(
+                        CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL_SECONDS
+                    ),
                 ): UPDATE_INTERVAL_VALIDATOR,
             }
         )

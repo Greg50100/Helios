@@ -254,9 +254,10 @@ def test_day_length_matches_sunrise_and_sunset() -> None:
         assert data.day_length_minutes == pytest.approx(expected, abs=0.01)
 
 
-def test_day_length_around_polar_day_and_night() -> None:
+@pytest.mark.parametrize("elevation", [0.0, 1000.0])
+def test_day_length_around_polar_day_and_night(elevation: float) -> None:
     """Tromsø, 2024: day length agrees with the events of each solar day."""
-    engine = MeeusSolarEngine(*TROMSO)
+    engine = MeeusSolarEngine(*TROMSO, elevation_meters=elevation)
     seen = set()
     for day in range(366):
         moment = datetime(2024, 1, 1, 11, tzinfo=timezone.utc) + timedelta(days=day)
@@ -281,6 +282,45 @@ def test_above_horizon_switches_at_sunrise_and_sunset_far_north() -> None:
     engine = MeeusSolarEngine(*TROMSO)
     day = engine.calculate(datetime(2024, 8, 10, 11, 0, tzinfo=timezone.utc))
     margin = timedelta(seconds=60)
+
+    assert not engine.calculate(day.sunrise - margin).is_above_horizon
+    assert engine.calculate(day.sunrise + margin).is_above_horizon
+    assert engine.calculate(day.sunset - margin).is_above_horizon
+    assert not engine.calculate(day.sunset + margin).is_above_horizon
+
+
+def test_horizon_dip() -> None:
+    assert MeeusSolarEngine.horizon_dip(0.0) == 0.0
+    # Below sea level (Dead Sea shore): the horizon is not lowered
+    assert MeeusSolarEngine.horizon_dip(-430.0) == 0.0
+    # 1.76' × √100 = 17.6'
+    assert MeeusSolarEngine.horizon_dip(100.0) == pytest.approx(17.6 / 60.0)
+
+
+def test_elevation_lengthens_the_day() -> None:
+    """At 1000 m the Sun rises earlier and sets later; twilights are unchanged."""
+    dt = datetime(2024, 3, 20, 12, 0, tzinfo=timezone.utc)
+    sea_level = MeeusSolarEngine(*PARIS).calculate(dt)
+    summit = MeeusSolarEngine(*PARIS, elevation_meters=1000.0).calculate(dt)
+
+    sunrise_shift = (sea_level.sunrise - summit.sunrise).total_seconds() / 60.0
+    sunset_shift = (summit.sunset - sea_level.sunset).total_seconds() / 60.0
+    assert sunrise_shift == pytest.approx(5.6, abs=0.2)
+    assert sunset_shift == pytest.approx(5.6, abs=0.2)
+    assert summit.day_length_minutes - sea_level.day_length_minutes == pytest.approx(
+        sunrise_shift + sunset_shift, abs=0.5
+    )
+
+    assert summit.solar_noon == sea_level.solar_noon
+    assert summit.civil_dawn == sea_level.civil_dawn
+    assert summit.civil_dusk == sea_level.civil_dusk
+
+
+@pytest.mark.parametrize("elevation", [0.0, 1000.0])
+def test_above_horizon_matches_sunrise_and_sunset(elevation: float) -> None:
+    engine = MeeusSolarEngine(*PARIS, elevation_meters=elevation)
+    day = engine.calculate(datetime(2024, 6, 21, 12, 0, tzinfo=timezone.utc))
+    margin = timedelta(seconds=30)
 
     assert not engine.calculate(day.sunrise - margin).is_above_horizon
     assert engine.calculate(day.sunrise + margin).is_above_horizon
