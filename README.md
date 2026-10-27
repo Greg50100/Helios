@@ -25,7 +25,7 @@
 Helios requires Home Assistant 2025.4 or later.
 
 1. **Via HACS:** Add `https://github.com/astraeos-dev/helios` as a custom repository (category *Integration*), then install **Helios**.
-2. **Manual:** Copy the `custom_components/helios` folder into the `custom_components/` directory of your Home Assistant configuration, then restart Home Assistant.
+2. **Manual:** Copy the `custom_components/astraeos_helios` folder into the `custom_components/` directory of your Home Assistant configuration, then restart Home Assistant.
 3. Go to **Settings -> Devices & services -> Add integration** and search for **Helios**.
 
 The elevation and the update interval (10 to 3600 seconds, 60 by default) can be changed later from the integration options. Elevation lowers the visible horizon, so the Sun rises earlier and sets later; set it to 0 to get almanac times.
@@ -58,7 +58,7 @@ A timestamp is `unknown` when the event does not happen that day: polar day or n
 
 ### Mathematical Reference & Equations Audit
 
-All calculations implemented in `custom_components/helios/solar_engine.py` can be verified against **Jean Meeus, *Astronomical Algorithms*, 2nd Edition (1998)**:
+All calculations implemented in `custom_components/astraeos_helios/solar_engine.py` can be verified against **Jean Meeus, *Astronomical Algorithms*, 2nd Edition (1998)**:
 
 #### 1. Julian Day ($JD$) and Julian Century ($T$) — *Chapter 7 (Eq. 7.1) & Chapter 25 (Eq. 25.1)*
 
@@ -192,7 +192,7 @@ $$
 Helios nécessite Home Assistant 2025.4 ou plus récent.
 
 1. **Via HACS :** Ajoutez `https://github.com/astraeos-dev/helios` en tant que dépôt personnalisé (*Custom Repository*, catégorie *Integration*), puis installez **Helios**.
-2. **Manuelle :** Copiez le dossier `custom_components/helios` dans le répertoire `custom_components/` de votre configuration Home Assistant, puis redémarrez Home Assistant.
+2. **Manuelle :** Copiez le dossier `custom_components/astraeos_helios` dans le répertoire `custom_components/` de votre configuration Home Assistant, puis redémarrez Home Assistant.
 3. Allez dans **Paramètres -> Appareils et services -> Ajouter une intégration** et recherchez **Helios**.
 
 L'altitude et l'intervalle de mise à jour (de 10 à 3600 secondes, 60 par défaut) se modifient ensuite dans les options de l'intégration. L'altitude abaisse l'horizon visible : le soleil se lève plus tôt et se couche plus tard. Mettez 0 pour retrouver les heures des éphémérides.
@@ -225,7 +225,7 @@ Un horodatage vaut `unknown` quand l'événement n'a pas lieu ce jour-là : jour
 
 ### Références des équations pour vérification
 
-Toutes les formules codées dans `custom_components/helios/solar_engine.py` suivent l'ouvrage **Jean Meeus, *Astronomical Algorithms*, 2nd Edition (1998)** :
+Toutes les formules codées dans `custom_components/astraeos_helios/solar_engine.py` suivent l'ouvrage **Jean Meeus, *Astronomical Algorithms*, 2nd Edition (1998)** :
 
 1. **Jour Julien ($JD$) et Siècle Julien ($T$) :** Chapitre 7 (Éq. 7.1, p. 61) et Chapitre 25 (Éq. 25.1, p. 163).
 2. **Longitude moyenne ($L_0$), Anomalie moyenne ($M$) et Excentricité ($e$) :** Chapitre 25 (Éq. 25.2, 25.3 et 25.4, p. 163).

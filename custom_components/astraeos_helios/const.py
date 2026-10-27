@@ -3,7 +3,7 @@
 from datetime import timedelta
 from homeassistant.const import Platform
 
-DOMAIN = "helios"
+DOMAIN = "astraeos_helios"
 PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BINARY_SENSOR]
 
 CONF_UPDATE_INTERVAL = "update_interval"

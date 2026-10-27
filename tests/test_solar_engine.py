@@ -13,7 +13,7 @@ import pytest
 _MODULE_PATH = (
     Path(__file__).resolve().parents[1]
     / "custom_components"
-    / "helios"
+    / "astraeos_helios"
     / "solar_engine.py"
 )
 _spec = importlib.util.spec_from_file_location("solar_engine", _MODULE_PATH)

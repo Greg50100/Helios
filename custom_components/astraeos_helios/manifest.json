@@ -1,6 +1,6 @@
 {
-"domain": "helios",
-"name": "Helios Solar Data",
+"domain": "astraeos_helios",
+"name": "Helios",
 "codeowners": [
 "@astraeos-dev"
 ],
