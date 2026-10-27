@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/brand/icon.svg" width="128" height="128" alt="Helios"></p>
+
 # Helios - Jean Meeus Solar Integration for Home Assistant
 
 **Version:** `0.1.0`
