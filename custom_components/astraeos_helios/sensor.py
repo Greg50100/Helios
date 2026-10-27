@@ -177,6 +177,38 @@ SENSOR_TYPES: tuple[HeliosSensorEntityDescription, ...] = (
         icon="mdi:weather-night",
         value_fn=lambda data: data.astronomical_dusk,
     ),
+    HeliosSensorEntityDescription(
+        key="blue_hour_dawn",
+        translation_key="blue_hour_dawn",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        icon="mdi:weather-sunset-up",
+        value_fn=lambda data: data.blue_hour_dawn,
+    ),
+    HeliosSensorEntityDescription(
+        key="blue_hour_dusk",
+        translation_key="blue_hour_dusk",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        icon="mdi:weather-sunset-down",
+        value_fn=lambda data: data.blue_hour_dusk,
+    ),
+    HeliosSensorEntityDescription(
+        key="golden_hour_dawn",
+        translation_key="golden_hour_dawn",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        icon="mdi:weather-sunset-up",
+        value_fn=lambda data: data.golden_hour_dawn,
+    ),
+    HeliosSensorEntityDescription(
+        key="golden_hour_dusk",
+        translation_key="golden_hour_dusk",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        icon="mdi:weather-sunset-down",
+        value_fn=lambda data: data.golden_hour_dusk,
+    ),
 )
 
 

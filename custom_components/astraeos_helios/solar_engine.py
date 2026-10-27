@@ -34,6 +34,7 @@ class SolarData:
     azimuth: float
     day_length_minutes: float
     solar_noon: datetime | None
+    solar_midnight: datetime | None
     sunrise: datetime | None
     sunset: datetime | None
     civil_dawn: datetime | None
@@ -42,6 +43,10 @@ class SolarData:
     nautical_dusk: datetime | None
     astronomical_dawn: datetime | None
     astronomical_dusk: datetime | None
+    blue_hour_dawn: datetime | None
+    blue_hour_dusk: datetime | None
+    golden_hour_dawn: datetime | None
+    golden_hour_dusk: datetime | None
     is_above_horizon: bool
 
 
@@ -53,6 +58,8 @@ class SolarEngine:
     ALTITUDE_CIVIL_TWILIGHT = -6.0
     ALTITUDE_NAUTICAL_TWILIGHT = -12.0
     ALTITUDE_ASTRONOMICAL_TWILIGHT = -18.0
+    ALTITUDE_BLUE_HOUR = -4.0  # Not a standard astronomical definition, but often used
+    ALTITUDE_GOLDEN_HOUR = 6.0  # Not a standard astronomical definition, but often used    
 
     # Lowest true altitude where Saemundsson's refraction formula holds (Chapter 16)
     REFRACTION_FORMULA_LIMIT = -1.0
@@ -444,6 +451,18 @@ class SolarEngine:
         astronomical_dusk = self._calculate_event_time(
             local_date, self.ALTITUDE_ASTRONOMICAL_TWILIGHT, False
         )
+        blue_hour_dawn = self._calculate_event_time(
+            local_date, self.ALTITUDE_BLUE_HOUR, True
+        )
+        blue_hour_dusk = self._calculate_event_time(
+            local_date, self.ALTITUDE_BLUE_HOUR, False
+        )
+        golden_hour_dawn = self._calculate_event_time(
+            local_date, self.ALTITUDE_GOLDEN_HOUR, True
+        )
+        golden_hour_dusk = self._calculate_event_time(
+            local_date, self.ALTITUDE_GOLDEN_HOUR, False
+        )
 
         day_length_min = self._calculate_day_length(solar_noon, sunrise, sunset)
 
@@ -467,6 +486,7 @@ class SolarEngine:
             azimuth=round(azimuth_deg, 2),
             day_length_minutes=round(day_length_min, 2),
             solar_noon=solar_noon,
+            solar_midnight=solar_noon,
             sunrise=sunrise,
             sunset=sunset,
             civil_dawn=civil_dawn,
@@ -475,6 +495,10 @@ class SolarEngine:
             nautical_dusk=nautical_dusk,
             astronomical_dawn=astronomical_dawn,
             astronomical_dusk=astronomical_dusk,
+            blue_hour_dawn=blue_hour_dawn,
+            blue_hour_dusk=blue_hour_dusk,
+            golden_hour_dawn=golden_hour_dawn,
+            golden_hour_dusk=golden_hour_dusk,
             # Sunrise/sunset thresholds apply to the geometric altitude: refraction is
             # already part of them, so comparing the apparent one would count it twice
             is_above_horizon=true_elevation_deg > self.sunrise_sunset_altitude,
