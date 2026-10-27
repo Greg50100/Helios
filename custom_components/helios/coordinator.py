@@ -25,7 +25,9 @@ class HeliosDataUpdateCoordinator(DataUpdateCoordinator[SolarData]):
         self.entry = entry
         latitude = entry.data.get(CONF_LATITUDE, hass.config.latitude)
         longitude = entry.data.get(CONF_LONGITUDE, hass.config.longitude)
-        elevation = entry.data.get(CONF_ELEVATION, hass.config.elevation)
+        elevation = entry.options.get(
+            CONF_ELEVATION, entry.data.get(CONF_ELEVATION, hass.config.elevation)
+        )
         interval_sec = entry.options.get(
             CONF_UPDATE_INTERVAL,
             entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL_SECONDS),

@@ -9,6 +9,9 @@
           "longitude": "Longitude",
           "elevation": "Elevation (meters)",
           "update_interval": "Update interval (seconds)"
+        },
+        "data_description": {
+          "elevation": "Lowers the visible horizon: the sun rises earlier and sets later. Use 0 to get almanac times."
         }
       }
     },
@@ -84,7 +87,11 @@
       "init": {
         "title": "Helios options",
         "data": {
+          "elevation": "Elevation (meters)",
           "update_interval": "Update interval (seconds)"
+        },
+        "data_description": {
+          "elevation": "Lowers the visible horizon: the sun rises earlier and sets later. Use 0 to get almanac times."
         }
       }
     }

@@ -9,6 +9,9 @@
           "longitude": "Longitude",
           "elevation": "Altitude (mètres)",
           "update_interval": "Intervalle de mise à jour (secondes)"
+        },
+        "data_description": {
+          "elevation": "Abaisse l'horizon visible : le soleil se lève plus tôt et se couche plus tard. Mettez 0 pour retrouver les heures des éphémérides."
         }
       }
     },
@@ -84,7 +87,11 @@
       "init": {
         "title": "Options Helios",
         "data": {
+          "elevation": "Altitude (mètres)",
           "update_interval": "Intervalle de mise à jour (secondes)"
+        },
+        "data_description": {
+          "elevation": "Abaisse l'horizon visible : le soleil se lève plus tôt et se couche plus tard. Mettez 0 pour retrouver les heures des éphémérides."
         }
       }
     }
