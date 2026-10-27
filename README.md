@@ -1,6 +1,6 @@
 # Helios - Jean Meeus Solar Integration for Home Assistant
 
-**Version:** `0.0.1-alpha`
+**Version:** `0.1.0`
 
 *Read this in: [English](#english-documentation) | [Français](#documentation-française)*
 
