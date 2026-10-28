@@ -12,7 +12,7 @@ pytest.importorskip(
     reason="requires pytest-homeassistant-custom-component (see requirements_test.txt)",
 )
 
-from custom_components.astraeos_helios.binary_sensor import BINARY_SENSOR_DESCRIPTION
+from custom_components.astraeos_helios.binary_sensor import BINARY_SENSOR_TYPES
 from custom_components.astraeos_helios.sensor import SENSOR_TYPES
 
 TRANSLATIONS = (
@@ -42,11 +42,13 @@ def _key_paths(node: dict, prefix: str = "") -> set[str]:
 def test_every_entity_has_a_name(language: str) -> None:
     """A translation_key missing here leaves the entity without its own name."""
     entity = _load(language)["entity"]
-    for description in SENSOR_TYPES:
-        assert entity["sensor"].get(description.translation_key, {}).get("name"), (
-            description.translation_key
-        )
-    assert entity["binary_sensor"][BINARY_SENSOR_DESCRIPTION.translation_key]["name"]
+    for platform, descriptions in (
+        ("sensor", SENSOR_TYPES),
+        ("binary_sensor", BINARY_SENSOR_TYPES),
+    ):
+        for description in descriptions:
+            names = entity[platform].get(description.translation_key, {})
+            assert names.get("name"), f"{platform}.{description.translation_key}"
 
 
 def test_languages_have_the_same_keys() -> None:
