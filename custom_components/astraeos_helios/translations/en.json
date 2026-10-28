@@ -11,7 +11,7 @@
           "update_interval": "Update interval (seconds)"
         },
         "data_description": {
-          "elevation": "Lowers the visible horizon: the sun rises earlier and sets later. Use 0 to get almanac times."
+          "elevation": "Lowers the visible horizon: the sun rises earlier and sets later. From -500 to 9000 m; use 0 to get almanac times."
         }
       }
     },
@@ -112,7 +112,7 @@
           "update_interval": "Update interval (seconds)"
         },
         "data_description": {
-          "elevation": "Lowers the visible horizon: the sun rises earlier and sets later. Use 0 to get almanac times."
+          "elevation": "Lowers the visible horizon: the sun rises earlier and sets later. From -500 to 9000 m; use 0 to get almanac times."
         }
       }
     }

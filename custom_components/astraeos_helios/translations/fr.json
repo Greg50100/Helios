@@ -11,7 +11,7 @@
           "update_interval": "Intervalle de mise à jour (secondes)"
         },
         "data_description": {
-          "elevation": "Abaisse l'horizon visible : le soleil se lève plus tôt et se couche plus tard. Mettez 0 pour retrouver les heures des éphémérides."
+          "elevation": "Abaisse l'horizon visible : le soleil se lève plus tôt et se couche plus tard. De -500 à 9000 m ; mettez 0 pour retrouver les heures des éphémérides."
         }
       }
     },
@@ -112,7 +112,7 @@
           "update_interval": "Intervalle de mise à jour (secondes)"
         },
         "data_description": {
-          "elevation": "Abaisse l'horizon visible : le soleil se lève plus tôt et se couche plus tard. Mettez 0 pour retrouver les heures des éphémérides."
+          "elevation": "Abaisse l'horizon visible : le soleil se lève plus tôt et se couche plus tard. De -500 à 9000 m ; mettez 0 pour retrouver les heures des éphémérides."
         }
       }
     }

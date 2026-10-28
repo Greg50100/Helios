@@ -14,6 +14,8 @@ import homeassistant.helpers.config_validation as cv
 from .const import CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL_SECONDS, DOMAIN
 
 UPDATE_INTERVAL_VALIDATOR = vol.All(vol.Coerce(int), vol.Range(min=10, max=3600))
+# From below the lowest shore (Dead Sea, -430 m) to above the highest summit (8849 m)
+ELEVATION_VALIDATOR = vol.All(vol.Coerce(float), vol.Range(min=-500, max=9000))
 
 
 class HeliosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -51,7 +53,7 @@ class HeliosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 ): cv.longitude,
                 vol.Required(
                     CONF_ELEVATION, default=self.hass.config.elevation
-                ): vol.Coerce(float),
+                ): ELEVATION_VALIDATOR,
                 vol.Required(
                     CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL_SECONDS
                 ): UPDATE_INTERVAL_VALIDATOR,
@@ -78,7 +80,7 @@ class HeliosOptionsFlow(config_entries.OptionsFlow):
                 vol.Required(
                     CONF_ELEVATION,
                     default=current.get(CONF_ELEVATION, self.hass.config.elevation),
-                ): vol.Coerce(float),
+                ): ELEVATION_VALIDATOR,
                 vol.Required(
                     CONF_UPDATE_INTERVAL,
                     default=current.get(
