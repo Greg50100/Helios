@@ -313,6 +313,20 @@ def test_golden_hour_all_day_far_north() -> None:
     assert engine.calculate(data.solar_noon).is_golden_hour
 
 
+def test_blue_hour_in_polar_night() -> None:
+    """Tromsø, 2024-12-21: the Sun never rises but peaks at -3°, past -4°."""
+    engine = SolarEngine(*TROMSO)
+    data = engine.calculate(datetime(2024, 12, 21, 11, tzinfo=timezone.utc))
+    assert data.sunrise is None
+    assert data.blue_hour_dawn < data.solar_noon < data.blue_hour_dusk
+    assert data.golden_hour_dawn is None
+    assert data.golden_hour_dusk is None
+
+    noon = engine.calculate(data.solar_noon)
+    assert noon.is_golden_hour
+    assert not noon.is_blue_hour
+
+
 @pytest.mark.parametrize(
     ("coordinates", "utc_offset"),
     [(APIA, 13), (KIRITIMATI, 14)],

@@ -95,7 +95,8 @@ class SolarEngine:
         An elevated observer sees past the astronomical horizon, so the Sun rises
         earlier and sets later. Uses the almanac approximation dip = 1.76' x sqrt(h)
         (h in meters, terrestrial refraction included); Meeus Chapter 15 assumes h = 0.
-        Twilights are defined against the astronomical horizon and are not affected.
+        Twilights and the blue and golden hours are defined against the astronomical
+        horizon and are not affected.
         """
         if elevation_meters <= 0.0:
             return 0.0
