@@ -58,8 +58,10 @@ class SolarEngine:
     ALTITUDE_CIVIL_TWILIGHT = -6.0
     ALTITUDE_NAUTICAL_TWILIGHT = -12.0
     ALTITUDE_ASTRONOMICAL_TWILIGHT = -18.0
-    ALTITUDE_BLUE_HOUR = -4.0  # Not a standard astronomical definition, but often used
-    ALTITUDE_GOLDEN_HOUR = 6.0  # Not a standard astronomical definition, but often used    
+    # Photographers' conventions, not astronomical standards: the blue hour spans
+    # -6° to -4° and the golden hour -4° to +6°
+    ALTITUDE_BLUE_HOUR = -4.0
+    ALTITUDE_GOLDEN_HOUR = 6.0
 
     # Lowest true altitude where Saemundsson's refraction formula holds (Chapter 16)
     REFRACTION_FORMULA_LIMIT = -1.0
@@ -91,7 +93,8 @@ class SolarEngine:
         An elevated observer sees past the astronomical horizon, so the Sun rises
         earlier and sets later. Uses the almanac approximation dip = 1.76' x sqrt(h)
         (h in meters, terrestrial refraction included); Meeus Chapter 15 assumes h = 0.
-        Twilights are defined against the astronomical horizon and are not affected.
+        Twilights and the blue and golden hours are defined against the astronomical
+        horizon and are not affected.
         """
         if elevation_meters <= 0.0:
             return 0.0
@@ -451,6 +454,9 @@ class SolarEngine:
         astronomical_dusk = self._calculate_event_time(
             local_date, self.ALTITUDE_ASTRONOMICAL_TWILIGHT, False
         )
+        # Morning: blue hour from civil dawn to blue_hour_dawn, then golden hour until
+        # golden_hour_dawn. Evening, mirrored: golden hour from golden_hour_dusk to
+        # blue_hour_dusk, then blue hour until civil dusk
         blue_hour_dawn = self._calculate_event_time(
             local_date, self.ALTITUDE_BLUE_HOUR, True
         )
@@ -465,6 +471,8 @@ class SolarEngine:
         )
 
         day_length_min = self._calculate_day_length(solar_noon, sunrise, sunset)
+        # End of the solar day: the daily events roll over to the next day then
+        solar_midnight = solar_noon + timedelta(hours=12)
 
         return SolarData(
             julian_day=round(jd, 6),
@@ -486,7 +494,7 @@ class SolarEngine:
             azimuth=round(azimuth_deg, 2),
             day_length_minutes=round(day_length_min, 2),
             solar_noon=solar_noon,
-            solar_midnight=solar_noon,
+            solar_midnight=solar_midnight,
             sunrise=sunrise,
             sunset=sunset,
             civil_dawn=civil_dawn,

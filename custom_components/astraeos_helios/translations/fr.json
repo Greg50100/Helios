@@ -74,6 +74,18 @@
       },
       "astronomical_dusk": {
         "name": "Crépuscule astronomique"
+      },
+      "blue_hour_dawn": {
+        "name": "Fin de l'heure bleue du matin"
+      },
+      "golden_hour_dawn": {
+        "name": "Fin de l'heure dorée du matin"
+      },
+      "golden_hour_dusk": {
+        "name": "Début de l'heure dorée du soir"
+      },
+      "blue_hour_dusk": {
+        "name": "Début de l'heure bleue du soir"
       }
     },
     "binary_sensor": {

@@ -74,6 +74,18 @@
       },
       "astronomical_dusk": {
         "name": "Astronomical dusk"
+      },
+      "blue_hour_dawn": {
+        "name": "Morning blue hour end"
+      },
+      "golden_hour_dawn": {
+        "name": "Morning golden hour end"
+      },
+      "golden_hour_dusk": {
+        "name": "Evening golden hour start"
+      },
+      "blue_hour_dusk": {
+        "name": "Evening blue hour start"
       }
     },
     "binary_sensor": {

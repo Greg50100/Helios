@@ -171,9 +171,13 @@ EVENT_ATTRS = (
     "astronomical_dawn",
     "nautical_dawn",
     "civil_dawn",
+    "blue_hour_dawn",
     "sunrise",
+    "golden_hour_dawn",
     "solar_noon",
+    "golden_hour_dusk",
     "sunset",
+    "blue_hour_dusk",
     "civil_dusk",
     "nautical_dusk",
     "astronomical_dusk",
@@ -326,3 +330,89 @@ def test_above_horizon_matches_sunrise_and_sunset(elevation: float) -> None:
     assert engine.calculate(day.sunrise + margin).is_above_horizon
     assert engine.calculate(day.sunset - margin).is_above_horizon
     assert not engine.calculate(day.sunset + margin).is_above_horizon
+
+
+def test_blue_and_golden_hours_frame_sunrise_and_sunset() -> None:
+    """Blue then golden hour around sunrise, mirrored around sunset."""
+    engine = SolarEngine(*PARIS)
+    data = engine.calculate(datetime(2024, 3, 20, 12, 0, tzinfo=timezone.utc))
+
+    events = [
+        data.civil_dawn,
+        data.blue_hour_dawn,
+        data.sunrise,
+        data.golden_hour_dawn,
+        data.solar_noon,
+        data.golden_hour_dusk,
+        data.sunset,
+        data.blue_hour_dusk,
+        data.civil_dusk,
+    ]
+    assert all(event is not None for event in events)
+    assert events == sorted(events)
+
+
+@pytest.mark.parametrize(
+    ("attr", "altitude"),
+    [
+        ("blue_hour_dawn", SolarEngine.ALTITUDE_BLUE_HOUR),
+        ("blue_hour_dusk", SolarEngine.ALTITUDE_BLUE_HOUR),
+        ("golden_hour_dawn", SolarEngine.ALTITUDE_GOLDEN_HOUR),
+        ("golden_hour_dusk", SolarEngine.ALTITUDE_GOLDEN_HOUR),
+    ],
+)
+def test_blue_and_golden_hour_limits_sit_at_their_altitude(
+    attr: str, altitude: float
+) -> None:
+    engine = SolarEngine(*PARIS)
+    for day in range(0, 366, 15):
+        moment = datetime(2024, 1, 1, 12, tzinfo=timezone.utc) + timedelta(days=day)
+        event = getattr(engine.calculate(moment), attr)
+        assert engine.calculate(event).true_elevation == pytest.approx(
+            altitude, abs=0.02
+        )
+
+
+def test_blue_and_golden_hours_far_north() -> None:
+    """Tromsø, 2024: the Sun peaks at -3° in polar night and bottoms at +3° in
+    the midnight sun, so only one of the two limits is crossed each time."""
+    engine = SolarEngine(*TROMSO)
+
+    polar_night = engine.calculate(datetime(2024, 12, 21, 11, 0, tzinfo=timezone.utc))
+    assert polar_night.sunrise is None
+    assert polar_night.blue_hour_dawn < polar_night.solar_noon < polar_night.blue_hour_dusk
+    assert polar_night.golden_hour_dawn is None
+    assert polar_night.golden_hour_dusk is None
+
+    midnight_sun = engine.calculate(datetime(2024, 6, 21, 11, 0, tzinfo=timezone.utc))
+    assert midnight_sun.sunset is None
+    assert midnight_sun.blue_hour_dawn is None
+    assert midnight_sun.blue_hour_dusk is None
+    assert (
+        midnight_sun.golden_hour_dawn
+        < midnight_sun.solar_noon
+        < midnight_sun.golden_hour_dusk
+    )
+
+
+@pytest.mark.parametrize(
+    "coordinates",
+    [PARIS, AUCKLAND, HONOLULU, APIA],
+    ids=["paris", "auckland", "honolulu", "apia"],
+)
+def test_solar_midnight_ends_the_solar_day(coordinates: tuple[float, float]) -> None:
+    """The Sun is at its lowest and the daily events roll over to the next day."""
+    engine = SolarEngine(*coordinates)
+    data = engine.calculate(datetime(2024, 3, 20, 12, 0, tzinfo=timezone.utc))
+    midnight = data.solar_midnight
+    assert midnight - data.solar_noon == timedelta(hours=12)
+    assert data.astronomical_dusk < midnight
+
+    lowest = engine.calculate(midnight).true_elevation
+    for minutes in (-15, 15):
+        nearby = engine.calculate(midnight + timedelta(minutes=minutes))
+        assert nearby.true_elevation > lowest
+
+    margin = timedelta(minutes=1)
+    assert engine.calculate(midnight - margin).solar_midnight == midnight
+    assert engine.calculate(midnight + margin).solar_noon > midnight
