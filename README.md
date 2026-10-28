@@ -18,7 +18,7 @@
 
 * **Zero External Dependencies:** Uses exclusively Python's standard `math` and `datetime` libraries (`"requirements": []` in `manifest.json`).
 * **Decoupled Architecture:** `solar_engine.py` has zero Home Assistant imports, making unit testing and equation auditing effortless.
-* **Complete Solar Metrics:** Azimuth, apparent and geometric elevation, declination, right ascension, equation of time, Earth-Sun distance (AU), Julian Day, solar noon, sunrise/sunset, and civil/nautical/astronomical twilights.
+* **Complete Solar Metrics:** Azimuth, apparent and geometric elevation, declination, right ascension, equation of time, Earth-Sun distance (AU), Julian Day, solar noon and midnight, sunrise/sunset, civil/nautical/astronomical twilights, and blue and golden hours.
 
 ### Installation
 
@@ -47,8 +47,10 @@ The elevation and the update interval (10 to 3600 seconds, 60 by default) can be
 | Daylight duration | min | Time the Sun spends above the horizon during the solar day |
 | Julian Day | | Diagnostic |
 | Solar noon, Sunrise, Sunset | timestamp | |
+| Solar midnight | timestamp | End of the solar day, when the Sun is at its lowest |
 | Civil dawn, Civil dusk | timestamp | |
 | Nautical and Astronomical dawn/dusk | timestamp | Diagnostic |
+| Blue and golden hour starts and ends | timestamp | Diagnostic, see [Blue and Golden Hours](#blue-and-golden-hours) |
 | Sun above horizon | on/off | On between sunrise and sunset |
 
 ### Daily Events and the Solar Day
@@ -58,6 +60,19 @@ Timestamps describe the current **solar day**, which runs from one solar midnigh
 The solar day only depends on longitude, which also keeps the right day where the time zone is a day away from it, such as Samoa or Kiribati (UTC+13/+14).
 
 A timestamp is `unknown` when the event does not happen that day: polar day or night, or summer nights that never get dark enough for a twilight.
+
+### Blue and Golden Hours
+
+The blue hour runs from civil twilight (Sun at $-6^\circ$) to $-4^\circ$, and the golden hour from $-4^\circ$ to $+6^\circ$. These are photographic conventions rather than astronomical standards; like twilights, they apply to the geometric altitude and do not depend on elevation. Four sensors mark their bounds, along with civil dawn and dusk:
+
+| Period | Start | End |
+| --- | --- | --- |
+| Morning blue hour | Civil dawn | Morning blue hour end |
+| Morning golden hour | Morning blue hour end | Morning golden hour end |
+| Evening golden hour | Evening golden hour start | Evening blue hour start |
+| Evening blue hour | Evening blue hour start | Civil dusk |
+
+At high latitudes in summer, the Sun can stay above $-4^\circ$ all night: there is no blue hour, and its sensors are `unknown`.
 
 ### Mathematical Reference & Equations Audit
 
@@ -165,16 +180,21 @@ $$
   $$
   E_{\text{rad}} = y\sin(2L_0) - 2e\sin(M) + 4ey\sin(M)\cos(2L_0) - \frac{1}{2}y^2\sin(4L_0) - \frac{5}{4}e^2\sin(2M)
   $$
-* **Sunrise, Sunset, and Twilights Hour Angle ($H_0$, Eq. 15.1):**
+* **Solar Noon and Solar Midnight:** the Sun crosses the meridian when apparent solar time is 12:00 ($H = 0^\circ$) and is at its lowest at 24:00 ($H = 180^\circ$). In minutes from 0h UTC, with $E$ refined at the event:
+
+  $$
+  t_{\text{noon}} = 720 - 4L_{\text{east}} - E, \quad t_{\text{midnight}} = 1440 - 4L_{\text{east}} - E
+  $$
+* **Hour Angle of Sunrise, Sunset, Twilights, Blue and Golden Hours ($H_0$, Eq. 15.1):**
 
   $$
   \cos(H_0) = \frac{\sin(h_{\text{target}}) - \sin(\phi)\sin(\delta)}{\cos(\phi)\cos(\delta)}
   $$
 
-  Where $h_{\text{target}}$ is $-0.8333^\circ$ (sunrise/sunset), $-6^\circ$ (civil), $-12^\circ$ (nautical), and $-18^\circ$ (astronomical). Thresholds apply to the geometric altitude $h_0$; the sunrise/sunset one already includes refraction and the solar semi-diameter, so *Sun above horizon* compares $h_0$ against it as well.
+  Where $h_{\text{target}}$ is $-0.8333^\circ$ (sunrise/sunset), $-6^\circ$ (civil), $-12^\circ$ (nautical), $-18^\circ$ (astronomical), and $-4^\circ$ and $+6^\circ$ (blue and golden hours). Thresholds apply to the geometric altitude $h_0$; the sunrise/sunset one already includes refraction and the solar semi-diameter, so *Sun above horizon* compares $h_0$ against it as well.
 
-  For an observer at elevation $h$ (meters), the sunrise/sunset threshold is lowered by the dip of the visible horizon, $1.76'\sqrt{h}$ (almanac approximation, terrestrial refraction included; Chapter 15 assumes $h = 0$). Twilights are defined against the astronomical horizon and do not change.
-* **Daylight Duration:** sunset minus sunrise. On days without one of them (around the midnight sun), the matching solar midnight (solar noon $\pm$ 12 h) bounds the daylight instead.
+  For an observer at elevation $h$ (meters), the sunrise/sunset threshold is lowered by the dip of the visible horizon, $1.76'\sqrt{h}$ (almanac approximation, terrestrial refraction included; Chapter 15 assumes $h = 0$). Twilights, blue and golden hours are defined against the astronomical horizon and do not change.
+* **Daylight Duration:** sunset minus sunrise. On days without one of them (around the midnight sun), the matching solar midnight, taken as solar noon $\pm$ 12 h, bounds the daylight instead.
 
 ---
 
@@ -188,7 +208,7 @@ $$
 
 * **Zéro dépendance externe :** Utilise exclusivement les modules standards `math` et `datetime` de Python (`"requirements": []` dans `manifest.json`).
 * **Maintenance simplifiée :** Le fichier `solar_engine.py` est totalement indépendant de Home Assistant. Vous pouvez le tester ou le modifier directement avec Python.
-* **Données complètes :** Azimut, élévation apparente et géométrique vraie, déclinaison, ascension droite, équation du temps, distance Terre-Soleil (UA), Jour Julien, midi solaire, lever/coucher du soleil et crépuscules civil, nautique et astronomique.
+* **Données complètes :** Azimut, élévation apparente et géométrique vraie, déclinaison, ascension droite, équation du temps, distance Terre-Soleil (UA), Jour Julien, midi et minuit solaires, lever/coucher du soleil, crépuscules civil, nautique et astronomique, heures bleue et dorée.
 
 ### Installation
 
@@ -217,8 +237,10 @@ L'altitude et l'intervalle de mise à jour (de 10 à 3600 secondes, 60 par défa
 | Durée du jour | min | Temps passé par le soleil au-dessus de l'horizon pendant la journée solaire |
 | Jour Julien | | Diagnostic |
 | Midi solaire, Lever du soleil, Coucher du soleil | horodatage | |
+| Minuit solaire | horodatage | Fin de la journée solaire, quand le soleil est au plus bas |
 | Aube civile, Crépuscule civil | horodatage | |
 | Aubes et crépuscules nautiques et astronomiques | horodatage | Diagnostic |
+| Débuts et fins des heures bleue et dorée | horodatage | Diagnostic, voir [Heures bleue et dorée](#heures-bleue-et-dorée) |
 | Soleil au-dessus de l'horizon | on/off | Allumé entre le lever et le coucher |
 
 ### Événements quotidiens et journée solaire
@@ -228,6 +250,19 @@ Les horodatages décrivent la **journée solaire** en cours, qui va d'un minuit 
 La journée solaire ne dépend que de la longitude, ce qui garde aussi le bon jour là où le fuseau horaire en est éloigné d'une journée, comme aux Samoa ou à Kiribati (UTC+13/+14).
 
 Un horodatage vaut `unknown` quand l'événement n'a pas lieu ce jour-là : jour ou nuit polaire, ou nuits d'été jamais assez sombres pour un crépuscule.
+
+### Heures bleue et dorée
+
+L'heure bleue va du crépuscule civil (soleil à $-6^\circ$) à $-4^\circ$, l'heure dorée de $-4^\circ$ à $+6^\circ$. Ce sont des conventions photographiques et non des définitions astronomiques ; comme les crépuscules, elles portent sur la hauteur géométrique et ne dépendent pas de l'altitude. Quatre capteurs marquent leurs limites, avec l'aube et le crépuscule civils :
+
+| Période | Début | Fin |
+| --- | --- | --- |
+| Heure bleue du matin | Aube civile | Fin de l'heure bleue du matin |
+| Heure dorée du matin | Fin de l'heure bleue du matin | Fin de l'heure dorée du matin |
+| Heure dorée du soir | Début de l'heure dorée du soir | Début de l'heure bleue du soir |
+| Heure bleue du soir | Début de l'heure bleue du soir | Crépuscule civil |
+
+Aux hautes latitudes en été, le soleil peut rester au-dessus de $-4^\circ$ toute la nuit : il n'y a alors pas d'heure bleue et ses capteurs valent `unknown`.
 
 ### Références des équations pour vérification
 
@@ -242,5 +277,5 @@ Toutes les formules codées dans `custom_components/astraeos_helios/solar_engine
 7. **Coordonnées horizontales locales (Azimut $A$ et Hauteur vraie $h_0$) :** Chapitre 13 (Éq. 13.5 et 13.6, p. 93). *Note : l'ouvrage mesure l'azimut à partir du Sud vers l'Ouest ; le moteur y ajoute $180^\circ \pmod{360^\circ}$ pour fournir l'azimut géographique standard (Nord = $0^\circ$, Est = $90^\circ$).*
 8. **Réfraction atmosphérique ($R$) :** Chapitre 16 (Formule de Saemundsson, Éq. 16.4, p. 106). *Note : la formule n'est plus valable sous $-1^\circ$ environ ; en dessous, la réfraction décroît en $1/\tan(h_0)$ (forme utilisée par la NOAA sous l'horizon), raccordée à $-1^\circ$ pour que l'élévation apparente reste continue.*
 9. **Équation du temps ($E$) :** Chapitre 28 (Éq. 28.3, p. 185).
-10. **Lever, passage au méridien et coucher ($H_0$) :** Chapitre 15 (Éq. 15.1, p. 101-103) avec double itération pour affiner la déclinaison et l'équation du temps à l'instant exact de chaque événement. Les seuils ($-0.8333^\circ$, $-6^\circ$, $-12^\circ$, $-18^\circ$) portent sur la hauteur géométrique $h_0$ ; celui du lever et du coucher inclut déjà la réfraction et le demi-diamètre solaire, c'est donc aussi à lui que *Soleil au-dessus de l'horizon* compare $h_0$. Pour un observateur à l'altitude $h$ (en mètres), ce seuil est abaissé de la dépression de l'horizon visible, $1.76'\sqrt{h}$ (approximation des éphémérides nautiques, réfraction terrestre comprise ; le chapitre 15 suppose $h = 0$). Les crépuscules, définis par rapport à l'horizon astronomique, ne changent pas.
-11. **Durée du jour :** coucher moins lever. Les jours sans l'un des deux (autour du soleil de minuit), c'est le minuit solaire correspondant (midi solaire $\pm$ 12 h) qui borne la durée.
+10. **Lever, passage au méridien et coucher ($H_0$) :** Chapitre 15 (Éq. 15.1, p. 101-103) avec double itération pour affiner la déclinaison et l'équation du temps à l'instant exact de chaque événement. Le soleil passe au méridien quand le temps solaire vrai vaut 12 h ($H = 0^\circ$) et au plus bas, au minuit solaire, quand il vaut 24 h ($H = 180^\circ$), soit $720 - 4L_{\text{est}} - E$ et $1440 - 4L_{\text{est}} - E$ minutes après 0 h UTC. Les seuils ($-0.8333^\circ$, $-6^\circ$, $-12^\circ$, $-18^\circ$, et $-4^\circ$ et $+6^\circ$ pour les heures bleue et dorée) portent sur la hauteur géométrique $h_0$ ; celui du lever et du coucher inclut déjà la réfraction et le demi-diamètre solaire, c'est donc aussi à lui que *Soleil au-dessus de l'horizon* compare $h_0$. Pour un observateur à l'altitude $h$ (en mètres), ce seuil est abaissé de la dépression de l'horizon visible, $1.76'\sqrt{h}$ (approximation des éphémérides nautiques, réfraction terrestre comprise ; le chapitre 15 suppose $h = 0$). Les crépuscules et les heures bleue et dorée, définis par rapport à l'horizon astronomique, ne changent pas.
+11. **Durée du jour :** coucher moins lever. Les jours sans l'un des deux (autour du soleil de minuit), c'est le minuit solaire correspondant, pris à midi solaire $\pm$ 12 h, qui borne la durée.
