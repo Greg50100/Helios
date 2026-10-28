@@ -289,6 +289,56 @@ def test_blue_and_golden_hour_flags_match_events(elevation: float) -> None:
             assert flags(event + margin) == after
 
 
+TRANSITION_FLAGS = {
+    "civil_dawn": "is_blue_hour",
+    "blue_hour_dawn": "is_golden_hour",
+    "sunrise": "is_above_horizon",
+    "golden_hour_dawn": "is_golden_hour",
+    "golden_hour_dusk": "is_golden_hour",
+    "sunset": "is_above_horizon",
+    "blue_hour_dusk": "is_golden_hour",
+    "civil_dusk": "is_blue_hour",
+}
+
+
+@pytest.mark.parametrize(
+    "coordinates",
+    [PARIS, TROMSO, REYKJAVIK, AUCKLAND, HONOLULU, APIA],
+    ids=["paris", "tromso", "reykjavik", "auckland", "honolulu", "apia"],
+)
+def test_binary_states_switch_within_a_second_of_their_events(
+    coordinates: tuple[float, float],
+) -> None:
+    """A refresh one second after an event finds the new state (see coordinator)."""
+    engine = SolarEngine(*coordinates)
+    margin = timedelta(seconds=1)
+    for day in range(0, 366, 5):
+        moment = datetime(2024, 1, 1, 12, tzinfo=timezone.utc) + timedelta(days=day)
+        data = engine.calculate(moment)
+        for attr, flag in TRANSITION_FLAGS.items():
+            event = getattr(data, attr)
+            if event is None:
+                continue
+            before = getattr(engine.calculate(event - margin), flag)
+            after = getattr(engine.calculate(event + margin), flag)
+            assert before != after, f"{attr} {event}"
+
+
+def test_next_transition_follows_the_day() -> None:
+    """Paris, 2024-06-21: every event that changes a state, then solar midnight."""
+    data = SolarEngine(*PARIS).calculate(datetime(2024, 6, 21, 12, tzinfo=timezone.utc))
+    transitions = [getattr(data, attr) for attr in TRANSITION_FLAGS]
+    transitions.append(data.solar_midnight)
+    assert transitions == sorted(transitions)
+
+    assert data.next_transition(data.nautical_dawn) == data.civil_dawn
+    assert data.next_transition(data.solar_noon) == data.golden_hour_dusk
+    for event, following in zip(transitions, transitions[1:]):
+        assert data.next_transition(event) == event
+        assert data.next_transition(event + timedelta(seconds=1)) == following
+    assert data.next_transition(data.solar_midnight + timedelta(seconds=1)) is None
+
+
 def test_golden_hour_without_blue_hour_far_north() -> None:
     """Tromsø, 2024-06-21: the Sun never drops below -4° but still dips under +6°."""
     engine = SolarEngine(*TROMSO)

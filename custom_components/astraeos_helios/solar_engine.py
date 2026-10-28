@@ -51,6 +51,28 @@ class SolarData:
     is_golden_hour: bool
     is_blue_hour: bool
 
+    def next_transition(self, moment: datetime) -> datetime | None:
+        """Return the first event from moment on that can change a binary state.
+
+        Covers sunrise, sunset and the bounds of the blue and golden hours, plus
+        solar midnight, where the timestamps move on to the next solar day.
+        """
+        events = (
+            self.civil_dawn,
+            self.blue_hour_dawn,
+            self.sunrise,
+            self.golden_hour_dawn,
+            self.golden_hour_dusk,
+            self.sunset,
+            self.blue_hour_dusk,
+            self.civil_dusk,
+            self.solar_midnight,
+        )
+        return min(
+            (event for event in events if event is not None and event >= moment),
+            default=None,
+        )
+
 
 class SolarEngine:
     """Astronomical calculation engine for solar position and daily events."""
@@ -67,6 +89,11 @@ class SolarEngine:
 
     # Lowest true altitude where Saemundsson's refraction formula holds (Chapter 16)
     REFRACTION_FORMULA_LIMIT = -1.0
+
+    # Corrections of an event time, in days: larger ones are not trusted, and
+    # smaller ones (under 10 ms) end the refinement
+    MAX_EVENT_CORRECTION = 10.0 / 1440.0
+    EVENT_PRECISION = 1e-7
 
     def __init__(
         self,
@@ -299,7 +326,58 @@ class SolarEngine:
 
             fraction_of_day = event_minutes / 1440.0
 
+        fraction_of_day = self._refine_event(
+            jd_midnight,
+            fraction_of_day,
+            None if is_rising is None else target_altitude,
+        )
         return midnight_utc + timedelta(days=fraction_of_day)
+
+    def _refine_event(
+        self,
+        jd_midnight: float,
+        fraction_of_day: float,
+        target_altitude: float | None,
+    ) -> float:
+        """Correct an event time with the Sun's position at that time (Chapter 15).
+
+        The equation of time estimate can be a few seconds off the elevation that
+        calculate() finds, enough for a refresh at the event to show the previous
+        state. Meeus corrects a transit by -H / 360° and a rising or setting by
+        (h - h0) / (360° cos δ cos φ sin H) days (p. 103). target_altitude None
+        means a transit: the upper one near H = 0°, the lower one near ±180°.
+        Keeps the estimate when the corrections do not settle, as when the Sun
+        barely reaches the altitude.
+        """
+        refined = fraction_of_day
+        for _ in range(5):
+            jd = jd_midnight + refined
+            t_century = self.to_julian_century(jd)
+            coords = self._solar_coordinates(t_century)
+            hour_angle, altitude = self._hour_angle_and_altitude(
+                jd, t_century, coords
+            )
+            if target_altitude is None:
+                offset = hour_angle
+                if abs(hour_angle) > 90.0:
+                    offset -= math.copysign(180.0, hour_angle)
+                correction = -offset / 360.0
+            else:
+                slope = (
+                    360.0
+                    * math.cos(math.radians(coords["declination"]))
+                    * math.cos(math.radians(self.latitude))
+                    * math.sin(math.radians(hour_angle))
+                )
+                if slope == 0.0:
+                    return fraction_of_day
+                correction = (altitude - target_altitude) / slope
+            if abs(correction) > self.MAX_EVENT_CORRECTION:
+                return fraction_of_day
+            refined += correction
+            if abs(correction) < self.EVENT_PRECISION:
+                return refined
+        return fraction_of_day
 
     def _solar_date(self, dt_utc: datetime) -> date:
         """Return the local mean solar date of the solar day containing dt_utc.
@@ -341,6 +419,7 @@ class SolarEngine:
             # Apparent solar time reaches 24:00 at this many minutes from UTC midnight
             fraction_of_day = (1440.0 - (4.0 * self.longitude) - eq_time) / 1440.0
 
+        fraction_of_day = self._refine_event(jd_midnight, fraction_of_day, None)
         return midnight_utc + timedelta(days=fraction_of_day)
 
     def _is_up_at_solar_midnight(self, moment: datetime) -> bool:
@@ -374,6 +453,35 @@ class SolarEngine:
         if sunrise is None or sunset is None:
             return 0.0
         return (sunset - sunrise).total_seconds() / 60.0
+
+    def _hour_angle_and_altitude(
+        self, jd: float, t_century: float, coords: dict[str, float]
+    ) -> tuple[float, float]:
+        """Return the local hour angle and the true altitude of the Sun in degrees."""
+        # Mean Sidereal Time at Greenwich theta0 in degrees (Meeus Chapter 12, Eq. 12.4)
+        theta0 = (
+            280.46061837
+            + 360.98564736629 * (jd - 2451545.0)
+            + 0.000387933 * (t_century**2)
+            - (t_century**3) / 38710000.0
+        ) % 360.0
+
+        # Local Hour Angle H (East longitude is positive, Meeus Chapter 13)
+        hour_angle_deg = (
+            theta0 + self.longitude - coords["right_ascension"]
+        ) % 360.0
+        if hour_angle_deg > 180.0:
+            hour_angle_deg -= 360.0
+
+        lat_rad = math.radians(self.latitude)
+        decl_rad = math.radians(coords["declination"])
+
+        # True Altitude h0 (Meeus Chapter 13, Eq. 13.6)
+        sin_h0 = math.sin(lat_rad) * math.sin(decl_rad) + math.cos(
+            lat_rad
+        ) * math.cos(decl_rad) * math.cos(math.radians(hour_angle_deg))
+        sin_h0 = max(-1.0, min(1.0, sin_h0))
+        return hour_angle_deg, math.degrees(math.asin(sin_h0))
 
     @classmethod
     def _refraction(cls, true_elevation_deg: float) -> float:
@@ -415,32 +523,12 @@ class SolarEngine:
         jd = self.to_julian_day(dt_utc)
         t_century = self.to_julian_century(jd)
         coords = self._solar_coordinates(t_century)
-
-        # Mean Sidereal Time at Greenwich theta0 in degrees (Meeus Chapter 12, Eq. 12.4)
-        theta0 = (
-            280.46061837
-            + 360.98564736629 * (jd - 2451545.0)
-            + 0.000387933 * (t_century**2)
-            - (t_century**3) / 38710000.0
-        ) % 360.0
-
-        # Local Hour Angle H (East longitude is positive, Meeus Chapter 13)
-        hour_angle_deg = (
-            theta0 + self.longitude - coords["right_ascension"]
-        ) % 360.0
-        if hour_angle_deg > 180.0:
-            hour_angle_deg -= 360.0
+        hour_angle_deg, true_elevation_deg = self._hour_angle_and_altitude(
+            jd, t_century, coords
+        )
         hour_angle_rad = math.radians(hour_angle_deg)
-
         lat_rad = math.radians(self.latitude)
         decl_rad = math.radians(coords["declination"])
-
-        # True Altitude h0 (Meeus Chapter 13, Eq. 13.6)
-        sin_h0 = math.sin(lat_rad) * math.sin(decl_rad) + math.cos(
-            lat_rad
-        ) * math.cos(decl_rad) * math.cos(hour_angle_rad)
-        sin_h0 = max(-1.0, min(1.0, sin_h0))
-        true_elevation_deg = math.degrees(math.asin(sin_h0))
 
         # Atmospheric Refraction R (Saemundsson's formula, Meeus Chapter 16, Eq. 16.4)
         apparent_elevation_deg = true_elevation_deg + self._refraction(

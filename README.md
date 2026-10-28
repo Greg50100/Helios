@@ -33,6 +33,8 @@ Helios requires Home Assistant 2025.4 or later.
 
 The elevation and the update interval (10 to 3600 seconds, 60 by default) can be changed later from the integration options. Elevation lowers the visible horizon, so the Sun rises earlier and sets later; set it to 0 to get almanac times.
 
+The update interval paces the position sensors (azimuth, elevation…). Binary sensors and the daily timestamps do not wait for it: Helios also refreshes one second after each event that changes them.
+
 ### Entities
 
 | Entity | Unit | Notes |
@@ -195,6 +197,12 @@ $$
   Where $h_{\text{target}}$ is $-0.8333^\circ$ (sunrise/sunset), $-6^\circ$ (civil), $-12^\circ$ (nautical), $-18^\circ$ (astronomical), and $-4^\circ$ and $+6^\circ$ (blue and golden hours). Thresholds apply to the geometric altitude $h_0$; the sunrise/sunset one already includes refraction and the solar semi-diameter, so *Sun above horizon* compares $h_0$ against it as well.
 
   For an observer at elevation $h$ (meters), the sunrise/sunset threshold is lowered by the dip of the visible horizon, $1.76'\sqrt{h}$ (almanac approximation, terrestrial refraction included; Chapter 15 assumes $h = 0$). Twilights, blue and golden hours are defined against the astronomical horizon and do not change.
+
+  Each time found from the equation of time can be a few seconds off the Sun's actual position. It is then corrected with that position (p. 103) until the correction falls under 10 ms, so binary sensors switch at the times shown:
+
+  $$
+  \Delta m = -\frac{H}{360^\circ} \ \text{(transits)}, \quad \Delta m = \frac{h_0 - h_{\text{target}}}{360^\circ\cos(\delta)\cos(\phi)\sin(H)} \ \text{(other events)}
+  $$
 * **Daylight Duration:** sunset minus sunrise. On days without one of them (around the midnight sun), the matching solar midnight, taken as solar noon $\pm$ 12 h, bounds the daylight instead.
 
 ---
@@ -223,6 +231,8 @@ Helios nécessite Home Assistant 2025.4 ou plus récent.
 3. Allez dans **Paramètres -> Appareils et services -> Ajouter une intégration** et recherchez **Helios**.
 
 L'altitude et l'intervalle de mise à jour (de 10 à 3600 secondes, 60 par défaut) se modifient ensuite dans les options de l'intégration. L'altitude abaisse l'horizon visible : le soleil se lève plus tôt et se couche plus tard. Mettez 0 pour retrouver les heures des éphémérides.
+
+L'intervalle de mise à jour rythme les capteurs de position (azimut, élévation…). Les capteurs binaires et les horodatages du jour ne l'attendent pas : Helios se met aussi à jour une seconde après chaque événement qui les change.
 
 ### Entités
 
@@ -279,5 +289,5 @@ Toutes les formules codées dans `custom_components/astraeos_helios/solar_engine
 7. **Coordonnées horizontales locales (Azimut $A$ et Hauteur vraie $h_0$) :** Chapitre 13 (Éq. 13.5 et 13.6, p. 93). *Note : l'ouvrage mesure l'azimut à partir du Sud vers l'Ouest ; le moteur y ajoute $180^\circ \pmod{360^\circ}$ pour fournir l'azimut géographique standard (Nord = $0^\circ$, Est = $90^\circ$).*
 8. **Réfraction atmosphérique ($R$) :** Chapitre 16 (Formule de Saemundsson, Éq. 16.4, p. 106). *Note : la formule n'est plus valable sous $-1^\circ$ environ ; en dessous, la réfraction décroît en $1/\tan(h_0)$ (forme utilisée par la NOAA sous l'horizon), raccordée à $-1^\circ$ pour que l'élévation apparente reste continue.*
 9. **Équation du temps ($E$) :** Chapitre 28 (Éq. 28.3, p. 185).
-10. **Lever, passage au méridien et coucher ($H_0$) :** Chapitre 15 (Éq. 15.1, p. 101-103) avec double itération pour affiner la déclinaison et l'équation du temps à l'instant exact de chaque événement. Le soleil passe au méridien quand le temps solaire vrai vaut 12 h ($H = 0^\circ$) et au plus bas, au minuit solaire, quand il vaut 24 h ($H = 180^\circ$), soit $720 - 4L_{\text{est}} - E$ et $1440 - 4L_{\text{est}} - E$ minutes après 0 h UTC. Les seuils ($-0.8333^\circ$, $-6^\circ$, $-12^\circ$, $-18^\circ$, et $-4^\circ$ et $+6^\circ$ pour les heures bleue et dorée) portent sur la hauteur géométrique $h_0$ ; celui du lever et du coucher inclut déjà la réfraction et le demi-diamètre solaire, c'est donc aussi à lui que *Soleil au-dessus de l'horizon* compare $h_0$. Pour un observateur à l'altitude $h$ (en mètres), ce seuil est abaissé de la dépression de l'horizon visible, $1.76'\sqrt{h}$ (approximation des éphémérides nautiques, réfraction terrestre comprise ; le chapitre 15 suppose $h = 0$). Les crépuscules et les heures bleue et dorée, définis par rapport à l'horizon astronomique, ne changent pas.
+10. **Lever, passage au méridien et coucher ($H_0$) :** Chapitre 15 (Éq. 15.1, p. 101-103) avec double itération pour affiner la déclinaison et l'équation du temps à l'instant exact de chaque événement. Chaque heure obtenue est ensuite corrigée avec la position du soleil à cet instant (p. 103), $\Delta m = -H/360^\circ$ pour un passage au méridien et $\Delta m = (h_0 - h_{\text{cible}})/(360^\circ\cos\delta\cos\phi\sin H)$ sinon, jusqu'à une correction inférieure à 10 ms : les capteurs binaires basculent aux heures affichées. Le soleil passe au méridien quand le temps solaire vrai vaut 12 h ($H = 0^\circ$) et au plus bas, au minuit solaire, quand il vaut 24 h ($H = 180^\circ$), soit $720 - 4L_{\text{est}} - E$ et $1440 - 4L_{\text{est}} - E$ minutes après 0 h UTC. Les seuils ($-0.8333^\circ$, $-6^\circ$, $-12^\circ$, $-18^\circ$, et $-4^\circ$ et $+6^\circ$ pour les heures bleue et dorée) portent sur la hauteur géométrique $h_0$ ; celui du lever et du coucher inclut déjà la réfraction et le demi-diamètre solaire, c'est donc aussi à lui que *Soleil au-dessus de l'horizon* compare $h_0$. Pour un observateur à l'altitude $h$ (en mètres), ce seuil est abaissé de la dépression de l'horizon visible, $1.76'\sqrt{h}$ (approximation des éphémérides nautiques, réfraction terrestre comprise ; le chapitre 15 suppose $h = 0$). Les crépuscules et les heures bleue et dorée, définis par rapport à l'horizon astronomique, ne changent pas.
 11. **Durée du jour :** coucher moins lever. Les jours sans l'un des deux (autour du soleil de minuit), c'est le minuit solaire correspondant, pris à midi solaire $\pm$ 12 h, qui borne la durée.
