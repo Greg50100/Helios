@@ -48,6 +48,8 @@ class SolarData:
     golden_hour_dawn: datetime | None
     golden_hour_dusk: datetime | None
     is_above_horizon: bool
+    is_golden_hour: bool
+    is_blue_hour: bool
 
 
 class SolarEngine:
@@ -58,8 +60,10 @@ class SolarEngine:
     ALTITUDE_CIVIL_TWILIGHT = -6.0
     ALTITUDE_NAUTICAL_TWILIGHT = -12.0
     ALTITUDE_ASTRONOMICAL_TWILIGHT = -18.0
-    ALTITUDE_BLUE_HOUR = -4.0  # Not a standard astronomical definition, but often used
-    ALTITUDE_GOLDEN_HOUR = 6.0  # Not a standard astronomical definition, but often used    
+    # Photographic light, not astronomical standards: the blue hour runs from civil
+    # twilight (-6°) to -4°, the golden hour from -4° to +6°
+    ALTITUDE_BLUE_HOUR = -4.0
+    ALTITUDE_GOLDEN_HOUR = 6.0
 
     # Lowest true altitude where Saemundsson's refraction formula holds (Chapter 16)
     REFRACTION_FORMULA_LIMIT = -1.0
@@ -306,12 +310,37 @@ class SolarEngine:
         """
         solar_date = (dt_utc + timedelta(hours=self.longitude / 15.0)).date()
         # Local mean time drifts from the true Sun by the equation of time (±16 min)
-        solar_noon = self._calculate_event_time(solar_date, 0.0, None)
-        if dt_utc - solar_noon > timedelta(hours=12):
+        if dt_utc > self._calculate_solar_midnight(solar_date):
             return solar_date + timedelta(days=1)
-        if solar_noon - dt_utc > timedelta(hours=12):
+        if dt_utc <= self._calculate_solar_midnight(solar_date - timedelta(days=1)):
             return solar_date - timedelta(days=1)
         return solar_date
+
+    def _calculate_solar_midnight(self, local_date: date) -> datetime:
+        """Return the lower transit of the Sun that ends the solar day of local_date.
+
+        The Sun is at its lowest, half a turn of hour angle after solar noon. Uses the
+        same two-pass refinement of the equation of time as the transit (Chapter 15).
+        """
+        midnight_utc = datetime(
+            local_date.year,
+            local_date.month,
+            local_date.day,
+            0,
+            0,
+            0,
+            tzinfo=timezone.utc,
+        )
+        jd_midnight = self.to_julian_day(midnight_utc)
+
+        fraction_of_day = 1.0
+        for _ in range(2):
+            t_century = self.to_julian_century(jd_midnight + fraction_of_day)
+            eq_time = self._solar_coordinates(t_century)["equation_of_time"]
+            # Apparent solar time reaches 24:00 at this many minutes from UTC midnight
+            fraction_of_day = (1440.0 - (4.0 * self.longitude) - eq_time) / 1440.0
+
+        return midnight_utc + timedelta(days=fraction_of_day)
 
     def _is_up_at_solar_midnight(self, moment: datetime) -> bool:
         """Return True if the Sun stays above the horizon through its lower transit."""
@@ -427,6 +456,7 @@ class SolarEngine:
 
         # Daily solar time events
         solar_noon = self._calculate_event_time(local_date, 0.0, None)
+        solar_midnight = self._calculate_solar_midnight(local_date)
         sunrise = self._calculate_event_time(
             local_date, self.sunrise_sunset_altitude, True
         )
@@ -466,6 +496,14 @@ class SolarEngine:
 
         day_length_min = self._calculate_day_length(solar_noon, sunrise, sunset)
 
+        # Same bounds as the blue and golden hour events: no horizon dip, as twilights
+        is_golden_hour = (
+            self.ALTITUDE_BLUE_HOUR < true_elevation_deg <= self.ALTITUDE_GOLDEN_HOUR
+        )
+        is_blue_hour = (
+            self.ALTITUDE_CIVIL_TWILIGHT < true_elevation_deg <= self.ALTITUDE_BLUE_HOUR
+        )
+
         return SolarData(
             julian_day=round(jd, 6),
             julian_century=round(t_century, 8),
@@ -486,7 +524,7 @@ class SolarEngine:
             azimuth=round(azimuth_deg, 2),
             day_length_minutes=round(day_length_min, 2),
             solar_noon=solar_noon,
-            solar_midnight=solar_noon,
+            solar_midnight=solar_midnight,
             sunrise=sunrise,
             sunset=sunset,
             civil_dawn=civil_dawn,
@@ -502,4 +540,6 @@ class SolarEngine:
             # Sunrise/sunset thresholds apply to the geometric altitude: refraction is
             # already part of them, so comparing the apparent one would count it twice
             is_above_horizon=true_elevation_deg > self.sunrise_sunset_altitude,
+            is_golden_hour=is_golden_hour,
+            is_blue_hour=is_blue_hour,
         )

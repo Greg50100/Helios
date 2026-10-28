@@ -51,6 +51,9 @@
       "solar_noon": {
         "name": "Solar noon"
       },
+      "solar_midnight": {
+        "name": "Solar midnight"
+      },
       "sunrise": {
         "name": "Sunrise"
       },
@@ -74,11 +77,29 @@
       },
       "astronomical_dusk": {
         "name": "Astronomical dusk"
+      },
+      "blue_hour_dawn": {
+        "name": "Morning blue hour end"
+      },
+      "blue_hour_dusk": {
+        "name": "Evening blue hour start"
+      },
+      "golden_hour_dawn": {
+        "name": "Morning golden hour end"
+      },
+      "golden_hour_dusk": {
+        "name": "Evening golden hour start"
       }
     },
     "binary_sensor": {
       "above_horizon": {
         "name": "Sun above horizon"
+      },
+      "golden_hour": {
+        "name": "Golden hour"
+      },
+      "blue_hour": {
+        "name": "Blue hour"
       }
     }
   },

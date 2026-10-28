@@ -118,6 +118,13 @@ SENSOR_TYPES: tuple[HeliosSensorEntityDescription, ...] = (
         value_fn=lambda data: data.solar_noon,
     ),
     HeliosSensorEntityDescription(
+        key="solar_midnight",
+        translation_key="solar_midnight",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        icon="mdi:weather-night",
+        value_fn=lambda data: data.solar_midnight,
+    ),
+    HeliosSensorEntityDescription(
         key="sunrise",
         translation_key="sunrise",
         device_class=SensorDeviceClass.TIMESTAMP,
