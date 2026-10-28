@@ -31,7 +31,7 @@ Helios requires Home Assistant 2025.4 or later.
 2. **Manual:** Copy the `custom_components/astraeos_helios` folder into the `custom_components/` directory of your Home Assistant configuration, then restart Home Assistant.
 3. Go to **Settings -> Devices & services -> Add integration** and search for **Helios**.
 
-The elevation and the update interval (10 to 3600 seconds, 60 by default) can be changed later from the integration options. Elevation lowers the visible horizon, so the Sun rises earlier and sets later; set it to 0 to get almanac times.
+The elevation (−500 to 9000 m) and the update interval (10 to 3600 seconds, 60 by default) can be changed later from the integration options. Elevation lowers the visible horizon, so the Sun rises earlier and sets later; set it to 0 to get almanac times.
 
 The update interval paces the position sensors (azimuth, elevation…). Binary sensors and the daily timestamps do not wait for it: Helios also refreshes one second after each event that changes them.
 
@@ -230,7 +230,7 @@ Helios nécessite Home Assistant 2025.4 ou plus récent.
 2. **Manuelle :** Copiez le dossier `custom_components/astraeos_helios` dans le répertoire `custom_components/` de votre configuration Home Assistant, puis redémarrez Home Assistant.
 3. Allez dans **Paramètres -> Appareils et services -> Ajouter une intégration** et recherchez **Helios**.
 
-L'altitude et l'intervalle de mise à jour (de 10 à 3600 secondes, 60 par défaut) se modifient ensuite dans les options de l'intégration. L'altitude abaisse l'horizon visible : le soleil se lève plus tôt et se couche plus tard. Mettez 0 pour retrouver les heures des éphémérides.
+L'altitude (de −500 à 9000 m) et l'intervalle de mise à jour (de 10 à 3600 secondes, 60 par défaut) se modifient ensuite dans les options de l'intégration. L'altitude abaisse l'horizon visible : le soleil se lève plus tôt et se couche plus tard. Mettez 0 pour retrouver les heures des éphémérides.
 
 L'intervalle de mise à jour rythme les capteurs de position (azimut, élévation…). Les capteurs binaires et les horodatages du jour ne l'attendent pas : Helios se met aussi à jour une seconde après chaque événement qui les change.
 
