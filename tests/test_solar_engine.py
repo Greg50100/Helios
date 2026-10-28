@@ -262,13 +262,55 @@ def test_blue_and_golden_hour_thresholds(attr: str, altitude: float) -> None:
         assert engine.calculate(event).true_elevation == pytest.approx(altitude, abs=0.02)
 
 
+@pytest.mark.parametrize("elevation", [0.0, 1000.0])
+def test_blue_and_golden_hour_flags_match_events(elevation: float) -> None:
+    """Paris: the flags switch at civil twilight, -4° and +6°, morning and evening."""
+    engine = SolarEngine(*PARIS, elevation_meters=elevation)
+    margin = timedelta(seconds=30)
+
+    def flags(moment: datetime) -> tuple[bool, bool]:
+        data = engine.calculate(moment)
+        return data.is_blue_hour, data.is_golden_hour
+
+    for day in range(0, 366, 7):
+        moment = datetime(2024, 1, 1, 12, tzinfo=timezone.utc) + timedelta(days=day)
+        data = engine.calculate(moment)
+        # (blue hour, golden hour) right before and right after each bound
+        bounds = [
+            (data.civil_dawn, (False, False), (True, False)),
+            (data.blue_hour_dawn, (True, False), (False, True)),
+            (data.golden_hour_dawn, (False, True), (False, False)),
+            (data.golden_hour_dusk, (False, False), (False, True)),
+            (data.blue_hour_dusk, (False, True), (True, False)),
+            (data.civil_dusk, (True, False), (False, False)),
+        ]
+        for event, before, after in bounds:
+            assert flags(event - margin) == before
+            assert flags(event + margin) == after
+
+
 def test_golden_hour_without_blue_hour_far_north() -> None:
     """Tromsø, 2024-06-21: the Sun never drops below -4° but still dips under +6°."""
-    data = SolarEngine(*TROMSO).calculate(datetime(2024, 6, 21, 12, tzinfo=timezone.utc))
+    engine = SolarEngine(*TROMSO)
+    data = engine.calculate(datetime(2024, 6, 21, 12, tzinfo=timezone.utc))
     assert data.blue_hour_dawn is None
     assert data.blue_hour_dusk is None
     assert data.golden_hour_dawn is not None
     assert data.golden_hour_dusk is not None
+
+    midnight = engine.calculate(data.solar_midnight)
+    assert midnight.is_golden_hour
+    assert not midnight.is_blue_hour
+
+
+def test_golden_hour_all_day_far_north() -> None:
+    """Tromsø, 2024-01-25: the Sun rises but stays under +6°, so no golden hour ends."""
+    engine = SolarEngine(*TROMSO)
+    data = engine.calculate(datetime(2024, 1, 25, 11, tzinfo=timezone.utc))
+    assert data.sunrise is not None
+    assert data.golden_hour_dawn is None
+    assert data.golden_hour_dusk is None
+    assert engine.calculate(data.solar_noon).is_golden_hour
 
 
 @pytest.mark.parametrize(

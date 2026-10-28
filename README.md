@@ -52,6 +52,7 @@ The elevation and the update interval (10 to 3600 seconds, 60 by default) can be
 | Nautical and Astronomical dawn/dusk | timestamp | Diagnostic |
 | Blue and golden hour starts and ends | timestamp | Diagnostic, see [Blue and Golden Hours](#blue-and-golden-hours) |
 | Sun above horizon | on/off | On between sunrise and sunset |
+| Golden hour, Blue hour | on/off | On during the morning and evening golden or blue hour |
 
 ### Daily Events and the Solar Day
 
@@ -72,7 +73,7 @@ The blue hour runs from civil twilight (Sun at $-6^\circ$) to $-4^\circ$, and th
 | Evening golden hour | Evening golden hour start | Evening blue hour start |
 | Evening blue hour | Evening blue hour start | Civil dusk |
 
-At high latitudes in summer, the Sun can stay above $-4^\circ$ all night: there is no blue hour, and its sensors are `unknown`.
+The *Golden hour* and *Blue hour* binary sensors are on during these periods, morning and evening. The timestamps are `unknown` on days without the matching crossing, but the binary sensors still follow the Sun: at high latitudes, it can stay above $-4^\circ$ through summer nights (no blue hour) and below $+6^\circ$ through winter days (golden hour all day long).
 
 ### Mathematical Reference & Equations Audit
 
@@ -242,6 +243,7 @@ L'altitude et l'intervalle de mise à jour (de 10 à 3600 secondes, 60 par défa
 | Aubes et crépuscules nautiques et astronomiques | horodatage | Diagnostic |
 | Débuts et fins des heures bleue et dorée | horodatage | Diagnostic, voir [Heures bleue et dorée](#heures-bleue-et-dorée) |
 | Soleil au-dessus de l'horizon | on/off | Allumé entre le lever et le coucher |
+| Heure dorée, Heure bleue | on/off | Allumés pendant l'heure dorée ou bleue, du matin comme du soir |
 
 ### Événements quotidiens et journée solaire
 
@@ -262,7 +264,7 @@ L'heure bleue va du crépuscule civil (soleil à $-6^\circ$) à $-4^\circ$, l'he
 | Heure dorée du soir | Début de l'heure dorée du soir | Début de l'heure bleue du soir |
 | Heure bleue du soir | Début de l'heure bleue du soir | Crépuscule civil |
 
-Aux hautes latitudes en été, le soleil peut rester au-dessus de $-4^\circ$ toute la nuit : il n'y a alors pas d'heure bleue et ses capteurs valent `unknown`.
+Les capteurs binaires *Heure dorée* et *Heure bleue* sont allumés pendant ces périodes, le matin comme le soir. Les horodatages valent `unknown` les jours sans le passage correspondant, mais les capteurs binaires suivent toujours le soleil : aux hautes latitudes, il peut rester au-dessus de $-4^\circ$ les nuits d'été (pas d'heure bleue) et sous $+6^\circ$ les jours d'hiver (heure dorée toute la journée).
 
 ### Références des équations pour vérification
 

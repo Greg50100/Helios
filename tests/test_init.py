@@ -17,6 +17,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.astraeos_helios.binary_sensor import BINARY_SENSOR_TYPES
 from custom_components.astraeos_helios.const import CONF_UPDATE_INTERVAL, DOMAIN
 from custom_components.astraeos_helios.sensor import SENSOR_TYPES
 
@@ -46,10 +47,15 @@ async def test_setup_and_unload(hass: HomeAssistant, entry: MockConfigEntry) -> 
     await hass.async_block_till_done()
     assert entry.state is ConfigEntryState.LOADED
 
-    entities = er.async_entries_for_config_entry(er.async_get(hass), entry.entry_id)
-    assert len(entities) == len(SENSOR_TYPES) + 1
+    registry = er.async_get(hass)
+    entities = er.async_entries_for_config_entry(registry, entry.entry_id)
+    assert len(entities) == len(SENSOR_TYPES) + len(BINARY_SENSOR_TYPES)
     for entity in entities:
         assert hass.states.get(entity.entity_id) is not None, entity.entity_id
+    # Unique ID from before binary sensors had descriptions: keeps existing entities
+    assert registry.async_get_entity_id(
+        "binary_sensor", DOMAIN, f"{entry.entry_id}_above_horizon"
+    )
 
     assert await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()

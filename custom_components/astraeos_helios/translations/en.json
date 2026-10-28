@@ -94,6 +94,12 @@
     "binary_sensor": {
       "above_horizon": {
         "name": "Sun above horizon"
+      },
+      "golden_hour": {
+        "name": "Golden hour"
+      },
+      "blue_hour": {
+        "name": "Blue hour"
       }
     }
   },

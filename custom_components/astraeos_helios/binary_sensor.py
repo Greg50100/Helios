@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from dataclasses import dataclass
+
 from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
     BinarySensorEntityDescription,
@@ -14,11 +17,35 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
 from .coordinator import HeliosDataUpdateCoordinator
+from .solar_engine import SolarData
 
-BINARY_SENSOR_DESCRIPTION = BinarySensorEntityDescription(
-    key="above_horizon",
-    translation_key="above_horizon",
-    icon="mdi:white-balance-sunny",
+
+@dataclass(frozen=True, kw_only=True)
+class HeliosBinarySensorEntityDescription(BinarySensorEntityDescription):
+    """Describes a Helios binary sensor entity."""
+
+    is_on_fn: Callable[[SolarData], bool]
+
+
+BINARY_SENSOR_TYPES: tuple[HeliosBinarySensorEntityDescription, ...] = (
+    HeliosBinarySensorEntityDescription(
+        key="above_horizon",
+        translation_key="above_horizon",
+        icon="mdi:white-balance-sunny",
+        is_on_fn=lambda data: data.is_above_horizon,
+    ),
+    HeliosBinarySensorEntityDescription(
+        key="golden_hour",
+        translation_key="golden_hour",
+        icon="mdi:weather-sunset",
+        is_on_fn=lambda data: data.is_golden_hour,
+    ),
+    HeliosBinarySensorEntityDescription(
+        key="blue_hour",
+        translation_key="blue_hour",
+        icon="mdi:weather-night",
+        is_on_fn=lambda data: data.is_blue_hour,
+    ),
 )
 
 
@@ -27,23 +54,31 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up Helios binary sensor."""
+    """Set up Helios binary sensors based on a config entry."""
     coordinator: HeliosDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities([HeliosAboveHorizonBinarySensor(coordinator)])
+    async_add_entities(
+        HeliosBinarySensor(coordinator, description)
+        for description in BINARY_SENSOR_TYPES
+    )
 
 
-class HeliosAboveHorizonBinarySensor(
+class HeliosBinarySensor(
     CoordinatorEntity[HeliosDataUpdateCoordinator], BinarySensorEntity
 ):
-    """Binary sensor indicating if the sun is above the horizon."""
+    """Representation of a Helios binary sensor."""
 
+    entity_description: HeliosBinarySensorEntityDescription
     _attr_has_entity_name = True
 
-    def __init__(self, coordinator: HeliosDataUpdateCoordinator) -> None:
+    def __init__(
+        self,
+        coordinator: HeliosDataUpdateCoordinator,
+        description: HeliosBinarySensorEntityDescription,
+    ) -> None:
         """Initialize the binary sensor."""
         super().__init__(coordinator)
-        self.entity_description = BINARY_SENSOR_DESCRIPTION
-        self._attr_unique_id = f"{coordinator.entry.entry_id}_above_horizon"
+        self.entity_description = description
+        self._attr_unique_id = f"{coordinator.entry.entry_id}_{description.key}"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, coordinator.entry.entry_id)},
             name=coordinator.entry.title,
@@ -54,5 +89,5 @@ class HeliosAboveHorizonBinarySensor(
 
     @property
     def is_on(self) -> bool:
-        """Return True if the sun is above the horizon."""
-        return self.coordinator.data.is_above_horizon
+        """Return True if the binary sensor is on."""
+        return self.entity_description.is_on_fn(self.coordinator.data)

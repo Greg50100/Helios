@@ -48,6 +48,8 @@ class SolarData:
     golden_hour_dawn: datetime | None
     golden_hour_dusk: datetime | None
     is_above_horizon: bool
+    is_golden_hour: bool
+    is_blue_hour: bool
 
 
 class SolarEngine:
@@ -494,6 +496,14 @@ class SolarEngine:
 
         day_length_min = self._calculate_day_length(solar_noon, sunrise, sunset)
 
+        # Same bounds as the blue and golden hour events: no horizon dip, as twilights
+        is_golden_hour = (
+            self.ALTITUDE_BLUE_HOUR < true_elevation_deg <= self.ALTITUDE_GOLDEN_HOUR
+        )
+        is_blue_hour = (
+            self.ALTITUDE_CIVIL_TWILIGHT < true_elevation_deg <= self.ALTITUDE_BLUE_HOUR
+        )
+
         return SolarData(
             julian_day=round(jd, 6),
             julian_century=round(t_century, 8),
@@ -530,4 +540,6 @@ class SolarEngine:
             # Sunrise/sunset thresholds apply to the geometric altitude: refraction is
             # already part of them, so comparing the apparent one would count it twice
             is_above_horizon=true_elevation_deg > self.sunrise_sunset_altitude,
+            is_golden_hour=is_golden_hour,
+            is_blue_hour=is_blue_hour,
         )
